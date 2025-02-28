@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cloudless-mosaic"
+dynamic = ["version"]
+description = 'Calrissian-Dask demo app-package'
+requires-python = ">=3.8"
+license = "MIT"
+keywords = ["Dask", "Calrissian"]
+
+authors = [
+  { name = "Leonardo Mizzoni", email = "leonardo.mizzoni@terradue.com" },
+]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "requests",
+  "loguru",
+  "click",
+  "xarray",
+  "xarray-spatial",
+  "rasterio",
+  "stackstac",
+  "planetary-computer",
+  "pystac==1.11.0",
+  "pystac-client",
+  "numpy",
+  "matplotlib",
+  "pyarrow",
+  "dask-gateway",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.version]
+path = "src/cloudless_mosaic/__about__.py"
+
+source_pkgs = ["src/cloudless_mosaic"]
+
+[project.scripts]
+cloudless-mosaic = "cloudless_mosaic.app:main"
+
+[tool.hatch.envs.prod]
+path = "/app/envs/cloudless-mosaic"
