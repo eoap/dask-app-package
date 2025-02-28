@@ -61,5 +61,5 @@ cluster.scale(workers)
 
 # save the cluster name to a file
 with open(target, "w") as f:
-    f.write(cluster.name)
+    f.write(f"export DASK_CLUSTER={cluster.name}")
 logger.info(f"Cluster name {cluster.name} saved to {target}")
