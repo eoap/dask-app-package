@@ -10,6 +10,9 @@ requires-python = ">=3.8"
 license = "MIT"
 keywords = ["Dask", "Calrissian"]
 
+
+
+
 authors = [
   { name = "Leonardo Mizzoni", email = "leonardo.mizzoni@terradue.com" },
 ]
@@ -26,20 +29,20 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "requests",
-  "loguru",
-  "click",
-  "xarray",
-  "xarray-spatial",
-  "rasterio",
-  "stackstac",
-  "planetary-computer",
-  "pystac==1.11.0",
+  "numpy==1.26.3",  
+  "dask==2024.1.0", 
+  "distributed==2024.1.0",
+  "dask-gateway==2024.1.0",
+  "pystac",
+  "bokeh==3.6.2",
+  "rioxarray==0.18.1",
+  "loguru==0.7.3",
+  "odc-stac[botocore]==0.3.10",
+  "stackstac==0.5.1",
   "pystac-client",
-  "numpy",
-  "matplotlib",
-  "pyarrow",
-  "dask-gateway",
+  "planetary-computer",
+  "xarray-spatial",
+  "shapely",
 ]
 
 [tool.hatch.metadata]
@@ -51,7 +54,10 @@ path = "src/cloudless_mosaic/__about__.py"
 source_pkgs = ["src/cloudless_mosaic"]
 
 [project.scripts]
-cloudless-mosaic = "cloudless_mosaic.app:main"
+cloudless-mosaic = "cloudless_mosaic.app:start"
+
+[tool.hatch.envs.dev]
+python = "3.10"
 
 [tool.hatch.envs.prod]
 path = "/app/envs/cloudless-mosaic"

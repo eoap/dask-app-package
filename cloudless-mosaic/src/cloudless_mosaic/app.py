@@ -1,7 +1,8 @@
+from __future__ import annotations
+from typing import Dict, Any, List, Tuple, TypeAlias
 import numpy as np
 import xarray as xr
 
-import matplotlib.pyplot as plt
 
 import rasterio.features
 from rasterio.enums import Resampling
@@ -19,35 +20,23 @@ import os
 import sys
 import time
 import click
+from loguru import logger
 
+BBox: TypeAlias = tuple[float, float, float]
+RGBBands: TypeAlias = Tuple[str, str, str]
 
-def main(**kwargs):
+def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: str) -> None:
+
     
-    start_date = kwargs["start_date"]
-    end_date = kwargs["end_date"]
-    area_of_interest = {
-        "type": "Polygon",
-        "coordinates": [
-            [
-                [-122.27508544921875, 47.54687159892238],
-                [-121.96128845214844, 47.54687159892238],
-                [-121.96128845214844, 47.745787772920934],
-                [-122.27508544921875, 47.745787772920934],
-                [-122.27508544921875, 47.54687159892238],
-            ]
-        ],
-    }
-    bbox = rasterio.features.bounds(area_of_interest)
-
     stac = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
     )
 
     search = stac.search(
-        bbox=bbox,
+        bbox=aoi,
         datetime=f"{start_date}/{end_date}",
-        collections=["sentinel-2-l2a"],
+        collections=[collection],
         query={"eo:cloud_cover": {"lt": 25}},
     )
 
@@ -76,67 +65,54 @@ def main(**kwargs):
     monthly = data.groupby("time.month").median().compute()
 
     images = [ms.true_color(*x) for x in monthly]
-    images = xr.concat(images, dim="time")
+    #images = xr.concat(images, dim="time")
 
     print(images.head())
 
-    images = images.rio.write_crs("EPSG:4326", inplace=True)
-    images = images.rio.set_spatial_dims("x", "y", inplace=True)
+    for index, image in enumerate(images):
+        image = image.rio.write_crs("EPSG:4326", inplace=True)
+        image = image.rio.set_spatial_dims("x", "y", inplace=True)
 
-    # Save the monthly mosaic as a multi-band GeoTIFF
-    output_file = "monthly_mosaic.tif"
-    images.rio.to_raster(
-        output_file,
-        driver="COG",
-        dtype="uint8",
-        compress="deflate",
-        blocksize=256,
-        overview_resampling=Resampling.nearest,
-    )
+        # Save the monthly mosaic as a multi-band GeoTIFF
+        output_file = f"monthly_mosaic-{monthly[index]}.tif"
+        image.rio.to_raster(
+            output_file,
+            driver="COG",
+            dtype="uint8",
+            compress="deflate",
+            blocksize=256,
+            overview_resampling=Resampling.nearest,
+        )
 
-    print(f"Saved monthly mosaic as {output_file}")
+        print(f"Saved monthly mosaic as {output_file}")
 
 
-if __name__ == "__main__":
+@click.command()
+@click.option("--start-date", "start_date", required=True, help="")
+@click.option("--end-date", "end_date", required=True, help="")
+@click.option("--aoi", "aoi", required=True, help="")
+@click.option("--bands", "bands", required=True, multiple=True, help="")
+def start(**kwargs):
 
-    a
+    gateway = Gateway()
 
-    # Create argument parser
-    parser = argparse.ArgumentParser(description="Compute monthly mosaic")
-    parser.add_argument(
-        "--start_date", type=str, required=True, help="Start date of the search"
-    )
-    parser.add_argument(
-        "--end_date", type=str, required=True, help="End date of the search"
-    )
+    cluster_name = os.environ.get("DASK_CLUSTER")
 
-    # Parse the command-line arguments
-    args = parser.parse_args()
+    logger.info(f"Connecting to the Dask cluster: {cluster_name}")
 
-    print(args)
-    parser.print_help()
-    if not args.start_date or not args.end_date:
-        parser.print_help()
-        sys.exit(1)
-    # gateway = Gateway()
-
-    # with open("/shared/dask_cluster_name.txt", "r") as f:
-    #     cluster_name = f.read().strip()
-    # cluster_name = os.environ.get("DASK_CLUSTER")
-
-    # logger.info(f"Connecting to the Dask cluster: {cluster_name}")
-
-    # cluster = gateway.connect(cluster_name=cluster_name)
+    cluster = gateway.connect(cluster_name=cluster_name)
 
     try:
-        # client = cluster.get_client()
-        # logger.info(f"Dask Dashboard: {client.dashboard_link}")
-        logger.info("Running the monthly mosaic")
-        start_time = time.time()
-        main(args.start_date, args.end_date)
-        logger.info("Monthly mosaic computation completed successfully!")
+        client = cluster.get_client()
+        logger.info(f"Dask Dashboard: {client.dashboard_link}")
+        logger.info("Running the app")
+        main(**kwargs)
+        logger.info("Computation completed successfully!")
     except Exception as e:
         logger.error("Failed to run the script: {}", e)
         logger.error(traceback.format_exc())
     finally:
         sys.exit(0)
+
+# if __name__ == "__main__":
+#     start()
