@@ -3,9 +3,9 @@
 python \
     /app/init-dask.py \
     --target \
-    /shared/dask_cluster_name.txt \
+    ./dask_cluster_name.txt \
     --gateway-url \
-    {{ .Values.daskGatewayUrl }} \
+    http://traefik-dask-gateway.eoap-dask-gateway.svc.cluster.local:80 \
     --image \
     {{ .Values.daskWorkerImage }} \
     --worker-cores \
