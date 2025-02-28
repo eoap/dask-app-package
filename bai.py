@@ -26,6 +26,7 @@ def main(pre_fire_url, post_fire_url):
         resolution=10,
         resampling=Resampling.nearest,
         chunksize=(1, 1, 1024, 1024),
+        epsg=32610,
     )
 
     post_fire_stack = stackstac.stack(
@@ -38,6 +39,7 @@ def main(pre_fire_url, post_fire_url):
         resolution=10,
         resampling=Resampling.nearest,
         chunksize=(1, 1, 1024, 1024),
+        epsg=32610,
     )
 
     pre_fire_stack = pre_fire_stack.assign_coords(band=["B08", "B12"])
