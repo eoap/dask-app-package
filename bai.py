@@ -10,6 +10,7 @@ import traceback
 import os
 import sys
 from time import sleep
+import click
 
 def main(pre_fire_url, post_fire_url):
 
@@ -95,24 +96,14 @@ def main(pre_fire_url, post_fire_url):
         overview_resampling=Resampling.nearest,
     )
 
-if __name__ == "__main__":
 
-    # Create argument parser
-    parser = argparse.ArgumentParser(description="Compute Burnt Area Intensity")
-    parser.add_argument(
-        "--pre_fire_url", type=str, required=True, help="Pre-fire STAC item URL"
-    )
-    parser.add_argument(
-        "--post_fire_url", type=str, required=True, help="Post-fire STAC item URL"
-    )
-
-    # Parse the command-line arguments
-    args = parser.parse_args()
+@click.command()
+@click.option("--pre-fire-url", "pre_fire_url", required=True, help="Pre-fire STAC item URL")
+@click.option("--post-fire-url", "post_fire_url", required=True, help="Post-fire STAC item URL")
+def start(pre_fire_url, post_fire_url):
 
     gateway = Gateway()
 
-    # with open("/shared/dask_cluster_name.txt", "r") as f:
-    #     cluster_name = f.read().strip()
     cluster_name = os.environ.get("DASK_CLUSTER")
 
     logger.info(f"Connecting to the Dask cluster: {cluster_name}")
@@ -123,10 +114,13 @@ if __name__ == "__main__":
         client = cluster.get_client()
         logger.info(f"Dask Dashboard: {client.dashboard_link}")
         logger.info("Running the burned area intensity")
-        main(args.pre_fire_url, args.post_fire_url)
+        main(pre_fire_url, post_fire_url)
         logger.info("Burned area intensity computation completed successfully!")
     except Exception as e:
         logger.error("Failed to run the script: {}", e)
         logger.error(traceback.format_exc())
     finally:
         sys.exit(0)
+
+if __name__ == "__main__":
+    start()
