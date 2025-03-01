@@ -6,7 +6,7 @@ import stackstac
 import pystac_client
 import planetary_computer
 from pystac.extensions.projection import ProjectionExtension
-
+from pystac.extensions.eo import EOExtension
 import xrspatial.multispectral as ms
 
 from pystac import Item
@@ -23,7 +23,7 @@ import rioxarray # noqa: F401
 BBox: TypeAlias = tuple[float, float, float]
 RGBBands: TypeAlias = Tuple[str, str, str]
 
-from pystac.extensions.eo import EOExtension
+
 
 def get_asset_key_from_band(item: Item, common_band_name: str):
     """
