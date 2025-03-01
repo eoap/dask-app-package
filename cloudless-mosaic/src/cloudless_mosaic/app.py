@@ -93,7 +93,7 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
             items,
             assets=assets,
             chunksize=optimal_chunk_size,
-            resolution=100,
+            resolution=resolution,
             epsg=epsg
         )
         .where(lambda x: x > 0, other=np.nan)  # sentinel-2 uses 0 as nodata
@@ -113,7 +113,7 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
     #for time_index, image in zip(monthly.time.values, monthly):
         image = ms.true_color(*image)
         image = image.transpose("band", "y", "x")  # Ensure correct dimension order
-        image = image.rio.write_crs("EPSG:32610", inplace=True)
+        image = image.rio.write_crs(f"EPSG:{epsg}", inplace=True)
         image = image.rio.set_spatial_dims("x", "y", inplace=True)
 
         start_time = min(time_index).strftime("%Y-%m-%d")
