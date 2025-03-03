@@ -72,16 +72,34 @@ $graph:
   inputs:
     start-date:
       type: string
+      inputBinding:
+        position: 1
+        prefix: "--start-date"
     end-date:
       type: string
+      inputBinding:
+        position: 1
+        prefix: "--end-date"
     aoi:
       type: string
+      inputBinding:
+        position: 1
+        prefix: "--aoi"
     bands:
       type: string[]
+      inputBinding:
+        position: 1
+        prefix: "--bands"
     collection:
       type: string
+      inputBinding:
+        position: 1
+        prefix: "--collection"
     resolution:
       type: int
+      inputBinding:
+        position: 1
+        prefix: "--resolution"
   outputs:
     stac-catalog:
       type: Directory
