@@ -60,10 +60,10 @@ $graph:
     EnvVarRequirement:
       envDef: {}
     calrissian:DaskGatewayRequirement:
-      workerCores: 0.5
+      workerCores: 1
       workerCoresLimit: 1
       workerMemory: "2G"
-      clusterMaxCore: 7
+      clustermaxCore: 7
       clusterMaxMemory: "16G"
       
   baseCommand: ["cloudless-mosaic"]
