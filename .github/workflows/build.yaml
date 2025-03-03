@@ -41,7 +41,8 @@ jobs:
     - name: build & push image
       run: |
         IMAGE_ID=ghcr.io/eoap/dask-app-package/cloudless-mosaic
-        docker build . --file cloudless-mosaic/Dockerfile --tag cloudless-mosaic
+        cd cloudless-mosaic
+        docker build . --file Dockerfile --tag cloudless-mosaic
         docker tag cloudless-mosaic $IMAGE_ID:${{needs.version.outputs.app-version}}
         docker push $IMAGE_ID:${{needs.version.outputs.app-version}}
 
