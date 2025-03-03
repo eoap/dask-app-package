@@ -91,7 +91,7 @@ $graph:
       - type: array
         items: string
         inputBinding:
-          prefix: "--band"
+          prefix: "--bands"
     collection:
       type: string
       inputBinding:
