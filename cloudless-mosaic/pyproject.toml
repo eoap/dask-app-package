@@ -61,4 +61,6 @@ cloudless-mosaic = "cloudless_mosaic.app:start"
 python = "3.10"
 
 [tool.hatch.envs.prod]
+python = "3.10"
 path = "/app/envs/cloudless-mosaic"
+
