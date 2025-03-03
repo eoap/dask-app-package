@@ -138,7 +138,7 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
         .assign_coords(band=lambda x: x.common_name.rename("band"))  # use common names
     )
 
-    data = data.persist()
+    #data = data.persist()
     grouped = data.groupby("time.month")
     monthly = grouped.median().compute()
     
