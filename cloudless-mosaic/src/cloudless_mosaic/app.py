@@ -19,6 +19,7 @@ import os
 import sys
 import click
 import rioxarray # noqa: F401
+import rio_stac
 
 BBox: TypeAlias = tuple[float, float, float]
 RGBBands: TypeAlias = Tuple[str, str, str]
@@ -39,39 +40,21 @@ def create_catalog(items: List[Item]) -> Catalog:
 
     return catalog
 
-def create_monthly_stac_item(start_time: str, end_time: str, monthly_mosaic) -> Item:
+def create_monthly_stac_item(start_time: str, end_time: str, monthly_mosaic: str) -> Item:
     """
     Create a STAC item for a monthly mosaic.
     """
-    item = Item(
-        id=f"monthly-mosaic-{start_time}-{end_time}",
-        geometry=monthly_mosaic.rio.bounds(),
-        bbox=monthly_mosaic.rio.bounds(),
-        datetime=end_time,
-        properties={
-            "start_datetime": start_time,
-            "end_datetime": end_time,
-            "title": f"Monthly Mosaic {start_time} - {end_time}",
-            "description": f"Monthly Mosaic {start_time} - {end_time}",
-            "proj:epsg": monthly_mosaic.rio.crs.to_epsg(),
-            "proj:shape": monthly_mosaic.rio.shape,
-            "proj:transform": monthly_mosaic.rio.transform(),
-        },
+    item = rio_stac.stac.create_stac_item(
+        source=monthly_mosaic,
+        input_datetime=start_time,
+        id=f"monthly-mosaic-{to_datetime_str(start_time)}-{to_datetime_str(end_time)}",
+        asset_roles=["data", "visual"],
+        asset_href=os.path.basename(monthly_mosaic),
+        asset_name="data",
+        with_proj=True,
+        with_raster=True,
     )
-
-    item.add_asset(
-        "data",
-        Asset(
-            href=f"monthly_mosaic_{start_time}-{end_time}.tif",
-            media_type=MediaType.COG,
-            roles=["data"],
-            title="Monthly Mosaic",
-        ),
-    )
-
-    item.stac_extensions.append("proj")
-    
-
+   
     return item
 
 def get_asset_key_from_band(item: Item, common_band_name: str):
@@ -108,6 +91,10 @@ def extract_epsg_from_items(items: List[Item]):
             return epsg
     return 4326  # Default to WGS 84 if no EPSG found
 
+def to_datetime_str(date) -> str:
+
+    return pd.to_datetime(date).strftime("%Y-%m")
+
 def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: str, resolution:int) -> None:
 
     stac = pystac_client.Client.open(
@@ -132,7 +119,9 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
     logger.info(f"found epsg code: {epsg}")
     
     assets = [get_asset_key_from_band(items[0], band) for band in bands]
+    
     logger.info(assets)
+    
     sample_data = stackstac.stack(items, assets=assets, resolution=resolution, epsg=epsg)
     optimal_chunk_size = determine_optimal_chunk_size(sample_data.shape)
     logger.info(f"chunk size: {optimal_chunk_size}")
@@ -168,12 +157,14 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
         image = image.rio.write_crs(f"EPSG:{epsg}", inplace=True)
         image = image.rio.set_spatial_dims("x", "y", inplace=True)
 
-        start_time = min(time_range).strftime("%Y-%m-%d")
-        end_time = max(time_range).strftime("%Y-%m-%d")
-        logger.info(f"{start_time} {end_time}")
+        start_time = min(time_range) #.strftime("%Y-%m-%d")
+        end_time = max(time_range) #.strftime("%Y-%m-%d")
+        print(type(start_time))
+        logger.info(f"{to_datetime_str(start_time)}-{to_datetime_str(end_time)}")
 
         #date_str = pd.to_datetime(time_index).strftime("%Y-%m")
-        output_file = f"monthly_mosaic_{start_time}-{end_time}.tif"
+        os.makedirs(f"monthly-mosaic-{to_datetime_str(start_time)}-{to_datetime_str(end_time)}")
+        output_file = os.path.join(f"monthly-mosaic-{to_datetime_str(start_time)}-{to_datetime_str(end_time)}", f"monthly-mosaic-{to_datetime_str(start_time)}-{to_datetime_str(end_time)}.tif")
         image.rio.to_raster(
             output_file,
             driver="COG",
@@ -182,7 +173,7 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
             blocksize=256,
             overview_resampling=Resampling.nearest,
         )
-        mosaic_items.append(create_monthly_stac_item(start_time, end_time, image))
+        mosaic_items.append(create_monthly_stac_item(start_time, end_time, output_file))
         print(f"Saved monthly mosaic as {output_file}")
 
 

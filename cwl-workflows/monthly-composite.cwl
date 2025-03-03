@@ -1,5 +1,13 @@
 cwlVersion: v1.2
 
+$namespaces:
+  s: https://schema.org/
+  calrissian: https://calrissian-cwl.github.io/schema#
+
+s:softwareVersion: 1.4.1
+schemas:
+  - http://schema.org/version/9.0/schemaorg-current-http.rdf
+
 $graph:
 - class: Workflow
   id: main
@@ -51,7 +59,13 @@ $graph:
       dockerPull: ghcr.io/eoap/dask-app-package/cloudless-mosaic:1.0.0
     EnvVarRequirement:
       envDef: {}
-
+    calrissian:DaskGatewayRequirement:
+      workerCores: 0.5
+      workerCoresLimit: 1
+      workerMemory: "2G"
+      clusterMaxCore: 7
+      clusterMaxMemory: "16G"
+      
   baseCommand: ["cloudless-mosaic"]
   # this CLI invokes cloudless-mosaic --start-date 2020-10-01 --end-date 2020-12-31 --aoi -122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934 --bands nir --bands red --bands green --collection sentinel-2-l2a --resolution 100
   arguments: []
