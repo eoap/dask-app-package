@@ -9,7 +9,7 @@ from pystac.extensions.projection import ProjectionExtension
 from pystac.extensions.eo import EOExtension
 import xrspatial.multispectral as ms
 
-from pystac import Item
+from pystac import Catalog, Item, Asset, MediaType, CatalogType
 from rasterio.enums import Resampling
 
 from loguru import logger
@@ -24,6 +24,55 @@ BBox: TypeAlias = tuple[float, float, float]
 RGBBands: TypeAlias = Tuple[str, str, str]
 
 
+def create_catalog(items: List[Item]) -> Catalog:
+    """
+    Create a STAC catalog from a list of STAC items.
+    """
+    catalog = Catalog(
+        id="monthly-mosaics",
+        description="Monthly mosaics of Sentinel-2 data",
+        title="Monthly Mosaics",
+    )
+
+    for item in items:
+        catalog.add_item(item)
+
+    return catalog
+
+def create_monthly_stac_item(start_time: str, end_time: str, monthly_mosaic) -> Item:
+    """
+    Create a STAC item for a monthly mosaic.
+    """
+    item = Item(
+        id=f"monthly-mosaic-{start_time}-{end_time}",
+        geometry=monthly_mosaic.rio.bounds(),
+        bbox=monthly_mosaic.rio.bounds(),
+        datetime=end_time,
+        properties={
+            "start_datetime": start_time,
+            "end_datetime": end_time,
+            "title": f"Monthly Mosaic {start_time} - {end_time}",
+            "description": f"Monthly Mosaic {start_time} - {end_time}",
+            "proj:epsg": monthly_mosaic.rio.crs.to_epsg(),
+            "proj:shape": monthly_mosaic.rio.shape,
+            "proj:transform": monthly_mosaic.rio.transform(),
+        },
+    )
+
+    item.add_asset(
+        "data",
+        Asset(
+            href=f"monthly_mosaic_{start_time}-{end_time}.tif",
+            media_type=MediaType.COG,
+            roles=["data"],
+            title="Monthly Mosaic",
+        ),
+    )
+
+    item.stac_extensions.append("proj")
+    
+
+    return item
 
 def get_asset_key_from_band(item: Item, common_band_name: str):
     """
@@ -103,11 +152,14 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
     data = data.persist()
     grouped = data.groupby("time.month")
     monthly = grouped.median().compute()
-    #unique_times = [pd.to_datetime(data.time.sel(time=data.time.dt.month == month).values[0]) for month in monthly.month.values]
-    unique_times = [pd.to_datetime(data.time.sel(time=data.time.dt.month == month).values) for month in monthly.month.values]
+    
+    time_ranges = [pd.to_datetime(data.time.sel(time=data.time.dt.month == month).values) for month in monthly.month.values]
 
-    logger.info(unique_times)
-    for time_index, image in zip(unique_times, monthly):
+    logger.info(time_ranges)
+
+    mosaic_items = []
+
+    for time_range, image in zip(time_ranges, monthly):
     
 
     #for time_index, image in zip(monthly.time.values, monthly):
@@ -116,8 +168,8 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
         image = image.rio.write_crs(f"EPSG:{epsg}", inplace=True)
         image = image.rio.set_spatial_dims("x", "y", inplace=True)
 
-        start_time = min(time_index).strftime("%Y-%m-%d")
-        end_time = max(time_index).strftime("%Y-%m-%d")
+        start_time = min(time_range).strftime("%Y-%m-%d")
+        end_time = max(time_range).strftime("%Y-%m-%d")
         logger.info(f"{start_time} {end_time}")
 
         #date_str = pd.to_datetime(time_index).strftime("%Y-%m")
@@ -130,8 +182,13 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
             blocksize=256,
             overview_resampling=Resampling.nearest,
         )
-
+        mosaic_items.append(create_monthly_stac_item(start_time, end_time, image))
         print(f"Saved monthly mosaic as {output_file}")
+
+
+    catalog = create_catalog(mosaic_items)
+    catalog.normalize_hrefs("catalog.json")
+    catalog.save(CatalogType.SELF_CONTAINED)
 
 @click.command()
 @click.option("--start-date", "start_date", required=True, help="")
