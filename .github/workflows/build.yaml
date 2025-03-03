@@ -1,0 +1,121 @@
+name: build
+on:
+  push:
+    branches:
+    - main
+    - develop
+
+    paths:
+    - Dockerfile
+    - codemeta.json
+    - .github/**
+
+jobs:
+
+  version:
+
+    runs-on: ubuntu-latest
+
+    outputs:
+
+      app-version: ${{ steps.set-version.outputs.version }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - run: echo "APP_VERSION=$(cat cloudless-mosaic/codemeta.json | jq -r .version )" >> $GITHUB_ENV
+    - run: echo app version is $APP_VERSION
+    - id: set-version
+      run: echo "::set-output name=version::$APP_VERSION"
+
+  container-build:
+
+    needs: version
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2   
+    - run: echo version ${{needs.version.outputs.app-version}}
+    - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+    - name: build & push image
+      run: |
+        IMAGE_ID=ghcr.io/eoap/dask-app-package/cloudless-mosaic
+        docker build . --file cloudless-mosaic/Dockerfile --tag cloudless-mosaic
+        docker tag cloudless-mosaic $IMAGE_ID:${{needs.version.outputs.app-version}}
+        docker push $IMAGE_ID:${{needs.version.outputs.app-version}}
+
+  create-release:
+
+    needs:
+    - container-build
+    - version
+
+    runs-on: ubuntu-latest
+
+    outputs:
+
+      upload_url: ${{ steps.set-upload-url.outputs.upload_url }}
+
+    steps:
+    - name: release
+      uses: actions/create-release@v1
+      id: create_release
+      with:
+        draft: false
+        prerelease: false
+        release_name: ${{needs.version.outputs.app-version}}
+        tag_name: ${{needs.version.outputs.app-version}}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+    - id: set-upload-url
+      run: echo "::set-output name=upload_url::${{ steps.create_release.outputs.upload_url }}"
+
+  publish-artifacts:
+
+    needs:
+    - create-release
+    - version
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        step: ["monthly-composite"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - run: |
+        set -x
+        container=cloudless-mosaic
+        tag="ghcr.io/eoap/dask-app-package/cloudless-mosaic:${{needs.version.outputs.app-version}}"
+        docker pull ${tag}
+        shatag=$( docker inspect ${tag} | yq -r '.[0]["RepoDigests"][0]' )
+        s="${container}" t="${shatag}" yq -i eval '(.$graph[] | select (.id == env(s)) ).requirements.DockerRequirement.dockerPull = env(t)' cwl-workflows/${{matrix.step}}.cwl
+    - run: |
+        set -x
+        r=$( cat cloudless-mosaic/codemeta.json | jq -r ".codeRepository" ) yq -i eval '."s:codeRepository" = {"URL" : env(r)}' cwl-workflows/${{matrix.step}}.cwl
+        v="${{needs.version.outputs.app-version}}" yq -i eval '."s:softwareVersion" = env(v)' cwl-workflows/${{matrix.step}}.cwl
+        n=$(cat cloudless-mosaic/codemeta.json | jq -r '(.author[0].givenName + " " + .author[0].familyName)') \
+        e=$(cat cloudless-mosaic/codemeta.json | jq -r '.author[0].email') \
+        a=$(cat cloudless-mosaic/codemeta.json | jq -r '.author[0].affiliation["name"]') \
+        yq eval -i  '."s:author" += [{"class": "s:Person", "s.name": env(n), "s.email": env(e), "s.affiliation": env(a)}]' cwl-workflows/${{matrix.step}}.cwl
+    - name: Cleanup downloads folder
+      run: rm -rf downloads/*
+    - run: |
+        set -x
+        mkdir downloads
+        cp cwl-workflows/${{matrix.step}}.cwl downloads/${{matrix.step}}.${{needs.version.outputs.app-version}}.cwl
+    - uses: actions/upload-artifact@v4
+      with:
+        name: application-package-${{matrix.step}}
+        path: downloads
+        overwrite: true
+    - name: upload linux artifact 1
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{needs.create-release.outputs.upload_url}}
+        asset_path: downloads/${{matrix.step}}.${{needs.version.outputs.app-version}}.cwl
+        asset_name: ${{matrix.step}}.${{needs.version.outputs.app-version}}.cwl
+        asset_content_type: text/yaml

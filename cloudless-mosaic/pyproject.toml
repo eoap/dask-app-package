@@ -43,6 +43,7 @@ dependencies = [
   "planetary-computer",
   "xarray-spatial",
   "shapely",
+  "rio-stac",
 ]
 
 [tool.hatch.metadata]
