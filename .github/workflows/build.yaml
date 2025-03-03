@@ -9,6 +9,7 @@ on:
     - Dockerfile
     - codemeta.json
     - .github/**
+    - cloudless-mosaic/**
 
 jobs:
 
