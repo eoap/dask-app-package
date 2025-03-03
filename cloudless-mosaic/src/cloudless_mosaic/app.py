@@ -21,7 +21,7 @@ import click
 import rioxarray # noqa: F401
 import rio_stac
 
-BBox: TypeAlias = tuple[float, float, float]
+BBox: TypeAlias = tuple[float, float, float, float]
 RGBBands: TypeAlias = Tuple[str, str, str]
 
 
@@ -97,13 +97,16 @@ def to_datetime_str(date) -> str:
 
 def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: str, resolution:int) -> None:
 
+    logger.info(f"Area of interest: {aoi}")
+    logger.info(f"Time of interest: {start_date} to {end_date}")
+
     stac = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
     )
 
     search = stac.search(
-        bbox=aoi,
+        bbox=[float(c) for c in aoi.split(",")],
         datetime=f"{start_date}/{end_date}",
         collections=[collection],
         query={"eo:cloud_cover": {"lt": 25}},
