@@ -86,10 +86,12 @@ $graph:
         position: 1
         prefix: "--aoi"
     bands:
-      type: string[]
-      inputBinding:
-        position: 1
-        prefix: "--bands"
+      type:
+      - "null"
+      - type: array
+        items: string
+        inputBinding:
+          prefix: "--band"
     collection:
       type: string
       inputBinding:
