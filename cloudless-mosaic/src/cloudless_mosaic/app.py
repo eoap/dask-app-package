@@ -142,7 +142,7 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
     )
 
     logger.info(f"Using chunk size: {data.chunks} for {data.shape}")
-    #data = data.persist()
+    data = data.persist()
     grouped = data.groupby("time.month")
     monthly = grouped.median().compute()
     

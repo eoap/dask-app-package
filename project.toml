@@ -1,0 +1,46 @@
+[project]
+name = "cloudless-mosaic"
+version = "1.0.0"
+
+[build]
+engine = "cluster"
+
+
+[build.cluster]
+namespace = "eoap-dask-gateway"
+serviceAccount = "kaniko-sa"
+registry = "cr.terradue.com/earthquake-monitoring"
+secret = "kaniko-secret"
+
+[tools.cloudless-mosaic]
+context = "cloudless-mosaic"
+path = "cwl-workflows/monthly-composite.cwl#cloudless-mosaic"
+
+
+[[workflows]]
+path = "cwl-workflows/monthly-composite.cwl#cloudless-mosaic"
+
+
+[[workflows.tests]]
+name = "water-detection-test-1"
+description = "Test case 1 for cloudless-mosaic."
+
+[workflows.tests.params]
+resolution = 100 
+start-date = "2020-01-01"
+end-date = "2020-12-31"
+aoi = "-122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934"
+
+[workflows.tests.execution.cluster]
+usage_report = "usage.json"
+pool_logs_basepath = "logs"
+max_ram = "4G"
+max_cores = 8
+pod_serviceaccount = "calrissian-sa"
+
+[workflows.tests.execution.paths]
+volume = "/calrissian/cloudless-mosaic"
+stdout = "results.json"
+stderr = "app.log"
+tmp_outdir_prefix = "tmp"
+outdir = "results"
