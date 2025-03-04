@@ -133,7 +133,7 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
         stackstac.stack(
             items,
             assets=assets,
-            chunksize=4096,
+            chunksize=(10, 3, 512, 512),
             resolution=resolution,
             epsg=epsg
         )
