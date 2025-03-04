@@ -22,7 +22,7 @@ path = "cwl-workflows/monthly-composite.cwl#cloudless-mosaic"
 
 
 [[workflows.tests]]
-name = "water-detection-test-1"
+name = "cloudless-mosaic-test-1"
 description = "Test case 1 for cloudless-mosaic."
 
 [workflows.tests.params]
@@ -30,6 +30,8 @@ resolution = 100
 start-date = "2020-01-01"
 end-date = "2020-12-31"
 aoi = "-122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934"
+collection = "sentinel-2-l2a"
+bands = ["nir", "red", "green"]
 
 [workflows.tests.execution.cluster]
 usage_report = "usage.json"
@@ -44,3 +46,4 @@ stdout = "results.json"
 stderr = "app.log"
 tmp_outdir_prefix = "tmp"
 outdir = "results"
+tool_logs_basepath = "logs"
