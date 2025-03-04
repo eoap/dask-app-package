@@ -1,0 +1,19 @@
+version: '3'
+
+includes:
+  remote: https://raw.githubusercontent.com/eoap/task-files/c750354651eed547cc310aa7a856921e77ebc058/build-test/Taskfile.yaml
+
+tasks:
+  build:
+  - task: remote:build
+
+  prepare:
+  - task: remote:prepare
+
+  test:
+  - task: remote:test
+
+  cloudless:
+  - task: remote:test-by-index
+    vars:
+      VAR: 0
