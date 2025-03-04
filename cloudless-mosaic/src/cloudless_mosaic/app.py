@@ -125,15 +125,15 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
     
     logger.info(assets)
     
-    sample_data = stackstac.stack(items, assets=assets, resolution=resolution, epsg=epsg)
-    optimal_chunk_size = determine_optimal_chunk_size(sample_data.shape)
-    logger.info(f"chunk size: {optimal_chunk_size}")
+    # sample_data = stackstac.stack(items, assets=assets, resolution=resolution, epsg=epsg)
+    # optimal_chunk_size = determine_optimal_chunk_size(sample_data.shape)
+    # logger.info(f"chunk size: {optimal_chunk_size}")
 
     data = (
         stackstac.stack(
             items,
             assets=assets,
-            chunksize=(1, 3, optimal_chunk_size, optimal_chunk_size),
+            chunksize="auto",
             resolution=resolution,
             epsg=epsg
         )
@@ -141,6 +141,7 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
         .assign_coords(band=lambda x: x.common_name.rename("band"))  # use common names
     )
 
+    logger.info(f"Using chunk size: {data.chunks} for {data.shape}")
     #data = data.persist()
     grouped = data.groupby("time.month")
     monthly = grouped.median().compute()
