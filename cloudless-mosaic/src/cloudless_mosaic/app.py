@@ -103,7 +103,6 @@ def get_item_collection(aoi: BBox, start_date: str, end_date: str, collection: s
 
     stac = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
-        modifier=planetary_computer.sign_inplace,
     )
     search: ItemSearch = stac.search(
         bbox=[float(c) for c in aoi.split(",")],
@@ -117,7 +116,7 @@ def get_item_collection(aoi: BBox, start_date: str, end_date: str, collection: s
     for page in search.pages():
         logger.info(f"Fetched page with {len(page.items)} items")
 
-        items.extend(page.items)
+        items.extend([planetary_computer.sign(item) for item in page.items])
         sleep(10)
     
     return items
