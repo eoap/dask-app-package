@@ -34,6 +34,12 @@ $graph:
       default: "sentinel-2-l2a"
     resolution:
       type: int
+    max-items: 
+      type: int
+      default: 1000
+    max-cloud-cover:
+      type: int
+      default: 25
   outputs:
     stac-catalog:
       outputSource: step_monthly_composite/stac-catalog
@@ -47,6 +53,8 @@ $graph:
         bands: bands
         collection: collection
         resolution: resolution
+        max_items: max-items
+        max_cloud_cover: max-cloud-cover
       out: 
       - stac-catalog
       run:
@@ -67,7 +75,6 @@ $graph:
       clusterMaxMemory: "16G"
       
   baseCommand: ["cloudless-mosaic"]
-  # this CLI invokes cloudless-mosaic --start-date 2020-10-01 --end-date 2020-12-31 --aoi -122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934 --bands nir --bands red --bands green --collection sentinel-2-l2a --resolution 100
   arguments: []
   inputs:
     start-date:
@@ -102,6 +109,16 @@ $graph:
       inputBinding:
         position: 1
         prefix: "--resolution"
+    max_items:
+      type: int
+      inputBinding:
+        position: 1
+        prefix: "--max-items"
+    max_cloud_cover:
+      type: int
+      inputBinding:
+        position: 1
+        prefix: "--max-cloud-cover"
   outputs:
     stac-catalog:
       type: Directory
