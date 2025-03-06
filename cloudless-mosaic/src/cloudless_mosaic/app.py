@@ -7,9 +7,11 @@ import pystac_client
 import planetary_computer
 from pystac.extensions.projection import ProjectionExtension
 from pystac.extensions.eo import EOExtension
+from pystac_client.item_search import ItemSearch
+from pystac.item_collection import ItemCollection
 import xrspatial.multispectral as ms
 
-from pystac import Catalog, Item, Asset, MediaType, CatalogType
+from pystac import Catalog, Item, CatalogType
 from rasterio.enums import Resampling
 
 from loguru import logger
@@ -95,28 +97,33 @@ def to_datetime_str(date) -> str:
 
     return pd.to_datetime(date).strftime("%Y-%m")
 
-def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: str, resolution:int) -> None:
-
-    logger.info(f"Area of interest: {aoi}")
-    logger.info(f"Time of interest: {start_date} to {end_date}")
-
+def get_item_collection(aoi: BBox, start_date: str, end_date: str, collection: str, max_items: int, max_cloud_cover: int) -> ItemCollection:
+    
     stac = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
     )
-
-    search = stac.search(
+    search: ItemSearch = stac.search(
         bbox=[float(c) for c in aoi.split(",")],
         datetime=f"{start_date}/{end_date}",
         collections=[collection],
-        query={"eo:cloud_cover": {"lt": 25}},
+        query={"eo:cloud_cover": {"lt": max_cloud_cover}},
+        max_items=max_items,
     )
 
-    items = search.item_collection()
-    logger.info(f"found {len(items)} items")
-
-    logger.info(f"{items[0].get_self_href()}")
+    items: ItemCollection = search.item_collection()
     
+    return items
+
+def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: str, resolution:int, max_items: int, max_cloud_cover: int) -> None:
+
+    logger.info(f"Area of interest: {aoi}")
+    logger.info(f"Time of interest: {start_date} to {end_date}")
+
+    items = get_item_collection(aoi=aoi, start_date=start_date, end_date=end_date, collection=collection, max_items=max_items, max_cloud_cover=max_cloud_cover)
+  
+    logger.info(f"Found {len(items)} items")
+
     epsg = extract_epsg_from_items(items)
     
     logger.info(f"found epsg code: {epsg}")
@@ -186,12 +193,14 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
     catalog.save(CatalogType.SELF_CONTAINED)
 
 @click.command()
-@click.option("--start-date", "start_date", required=True, help="")
-@click.option("--end-date", "end_date", required=True, help="")
-@click.option("--aoi", "aoi", required=True, help="")
-@click.option("--bands", "bands", required=True, multiple=True, help="")
-@click.option("--collection", "collection", required=True, help="")
-@click.option("--resolution", "resolution", default=100, help="")
+@click.option("--start-date", "start_date", required=True, help="Start date expressed as YYYY-MM-DD")
+@click.option("--end-date", "end_date", required=True, help="End date expressed as YYYY-MM-DD")
+@click.option("--aoi", "aoi", required=True, help="Area of interest expressed as a bounding box")
+@click.option("--bands", "bands", required=True, multiple=True, help="Command band name")
+@click.option("--collection", "collection", required=True, help="Collection ID")
+@click.option("--resolution", "resolution", default=100, help="Target resolution in meters")
+@click.option("--max-items", "max_items", default=100, help="Maximum number of items to search")
+@click.option("--max-cloud-cover", "max_cloud_cover", default=25, help="Maximum cloud cover percentage")
 def start(**kwargs):
 
     gateway = Gateway()
