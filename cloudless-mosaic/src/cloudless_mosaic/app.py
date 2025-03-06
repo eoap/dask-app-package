@@ -156,10 +156,15 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
 
     logger.info(f"Using chunk size: {data.chunks} for {data.shape}")
     data = data.persist()
-    grouped = data.groupby("time.month")
+
+    grouped = data.groupby([data.time.dt.year, data.time.dt.month])
+
     monthly = grouped.median().compute()
     
-    time_ranges = [pd.to_datetime(data.time.sel(time=data.time.dt.month == month).values) for month in monthly.month.values]
+    time_ranges = [
+        pd.to_datetime(data.time.sel(time=(data.time.dt.year == year) & (data.time.dt.month == month)).values)
+        for year, month in monthly.groupby(["time.year", "time.month"]).groups.keys()
+    ]
 
     logger.info(time_ranges)
 
