@@ -10,7 +10,7 @@ from pystac.extensions.eo import EOExtension
 from pystac_client.item_search import ItemSearch
 from pystac.item_collection import ItemCollection
 import xrspatial.multispectral as ms
-
+from time import sleep
 from pystac import Catalog, Item, CatalogType
 from rasterio.enums import Resampling
 
@@ -99,6 +99,8 @@ def to_datetime_str(date) -> str:
 
 def get_item_collection(aoi: BBox, start_date: str, end_date: str, collection: str, max_items: int, max_cloud_cover: int) -> ItemCollection:
     
+    items = []
+
     stac = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
@@ -108,10 +110,15 @@ def get_item_collection(aoi: BBox, start_date: str, end_date: str, collection: s
         datetime=f"{start_date}/{end_date}",
         collections=[collection],
         query={"eo:cloud_cover": {"lt": max_cloud_cover}},
+        limit=10,
         max_items=max_items,
     )
 
-    items: ItemCollection = search.item_collection()
+    for page in search.pages():
+        logger.info(f"Fetched page with {len(page.items)} items")
+
+        items.extend(page.items)
+        sleep(10)
     
     return items
 
