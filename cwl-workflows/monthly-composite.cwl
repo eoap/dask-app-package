@@ -71,8 +71,8 @@ $graph:
       workerCores: 1
       workerCoresLimit: 1
       workerMemory: "2G"
-      clusterMaxCore: 7
-      clusterMaxMemory: "16G"
+      clusterMaxCore: 24
+      clusterMaxMemory: "48G"
       
   baseCommand: ["cloudless-mosaic"]
   arguments: []
