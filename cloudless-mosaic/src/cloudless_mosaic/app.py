@@ -119,7 +119,7 @@ def get_item_collection(aoi: BBox, start_date: str, end_date: str, collection: s
         items.extend([planetary_computer.sign(item) for item in page.items])
         sleep(10)
     
-    return items
+    return ItemCollection(items=items)
 
 def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: str, resolution:int, max_items: int, max_cloud_cover: int) -> None:
 
