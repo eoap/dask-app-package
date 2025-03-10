@@ -42,14 +42,14 @@ def create_catalog(items: List[Item]) -> Catalog:
 
     return catalog
 
-def create_monthly_stac_item(start_time: str, end_time: str, monthly_mosaic: str) -> Item:
+def create_monthly_stac_item(start_time: str, monthly_mosaic: str) -> Item:
     """
     Create a STAC item for a monthly mosaic.
     """
     item = rio_stac.stac.create_stac_item(
         source=monthly_mosaic,
         input_datetime=start_time,
-        id=f"monthly-mosaic-{to_datetime_str(start_time)}-{to_datetime_str(end_time)}",
+        id=f"monthly-mosaic-{to_datetime_str(start_time)}",
         asset_roles=["data", "visual"],
         asset_href=os.path.basename(monthly_mosaic),
         asset_name="data",
@@ -207,7 +207,7 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
         )
 
         # Generate STAC Item
-        mosaic_items.append(create_monthly_stac_item(start_time, end_time, output_file))
+        mosaic_items.append(create_monthly_stac_item(start_time, output_file))
         logger.info(f"Saved monthly mosaic: {output_file}")
 
 
