@@ -41,7 +41,8 @@ pool_logs_basepath = "logs"
 max_ram = "4G"
 max_cores = 8
 pod_serviceaccount = "calrissian-sa"
-dask_gateway = true 
+dask_gateway = true
+debug = true
 
 [workflows.tests.execution.paths]
 volume = "/calrissian/cloudless-mosaic"

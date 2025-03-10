@@ -15,6 +15,12 @@ Then the cloudless-mosaic cli is available. Check it with:
 cloudless-mosaic --help
 ```
 
+If not available, run:
+
+```
+pip install -e .
+```
+
 The tool is ready to be invoked but it needs a Dask cluster.
 
 Create a dask cluster using the script `start-dask.sh` then `source dask_cluster_name.txt` to export the `DASK_CLUSTER` environment variable, example:
@@ -26,7 +32,7 @@ export DASK_CLUSTER=eoap-dask-gateway.600b64a112eb404888df41006e19666f
 Now invoke: 
 
 ```
-cloudless-mosaic --start-date 2020-10-01 --end-date 2020-12-31 --aoi -122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934 --bands nir --bands red --bands green --collection sentinel-2-l2a --resolution 100
+cloudless-mosaic --start-date 2020-10-01 --end-date 2020-12-31 --aoi -122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934 --bands nir --bands red --bands green --collection sentinel-2-l2a --resolution 100 --max-items 1000 --max-cloud-cover 25 
 ```
 
 ## Application Package execution
