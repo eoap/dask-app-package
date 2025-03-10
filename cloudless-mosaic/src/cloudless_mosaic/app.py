@@ -114,9 +114,10 @@ def get_item_collection(aoi: BBox, start_date: str, end_date: str, collection: s
     )
 
     for page in search.pages():
-        logger.info(f"Fetched page with {len(page.items)} items")
+        page_items = (page.items)
+        logger.info(f"Fetched page with {len(page_items)} items")
 
-        items.extend([planetary_computer.sign(item) for item in page.items])
+        items.extend([planetary_computer.sign(item) for item in page_items])
         sleep(10)
     
     return ItemCollection(items=items)
@@ -134,13 +135,11 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
     
     logger.info(f"found epsg code: {epsg}")
     
+    logger.info(f"Using bands: {bands}")
     assets = [get_asset_key_from_band(items[0], band) for band in bands]
     
-    logger.info(assets)
+    logger.info(f"bands mapped to asset keys: {' '.join(assets)}")
     
-    # sample_data = stackstac.stack(items, assets=assets, resolution=resolution, epsg=epsg)
-    # optimal_chunk_size = determine_optimal_chunk_size(sample_data.shape)
-    # logger.info(f"chunk size: {optimal_chunk_size}")
 
     data = (
         stackstac.stack(
@@ -157,36 +156,47 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
     logger.info(f"Using chunk size: {data.chunks} for {data.shape}")
     data = data.persist()
 
-    grouped = data.groupby([data.time.dt.year, data.time.dt.month])
+    # Step 1: Create a new coordinate for grouping (YYYY-MM format)
+    data = data.assign_coords(year_month=("time", data.time.dt.strftime("%Y-%m").data))
 
+    # Step 2: Group by year-month and compute monthly median
+    grouped = data.groupby("year_month")
     monthly = grouped.median().compute()
-    
-    time_ranges = [
-        pd.to_datetime(data.time.sel(time=(data.time.dt.year == year) & (data.time.dt.month == month)).values)
-        for year, month in monthly.groupby(["time.year", "time.month"]).groups.keys()
-    ]
+
+    # Step 3: Extract time ranges (start and end dates per month)
+    time_ranges = {
+        year_month: (
+            time_values.min(),  # Start date
+            time_values.max()   # End date
+        )
+        for year_month, time_values in {
+            year_month: pd.to_datetime(data.time.sel(time=data.year_month == year_month).values)
+            for year_month in monthly.year_month.values
+        }.items()
+    }
 
     logger.info(time_ranges)
 
+
     mosaic_items = []
 
-    for time_range, image in zip(time_ranges, monthly):
-    
+    for year_month, image in zip(time_ranges.keys(), monthly):
+        start_time, end_time = time_ranges[year_month]
 
-    #for time_index, image in zip(monthly.time.values, monthly):
+        # Convert image to true color
         image = ms.true_color(*image)
         image = image.transpose("band", "y", "x")  # Ensure correct dimension order
         image = image.rio.write_crs(f"EPSG:{epsg}", inplace=True)
         image = image.rio.set_spatial_dims("x", "y", inplace=True)
 
-        start_time = min(time_range) #.strftime("%Y-%m-%d")
-        end_time = max(time_range) #.strftime("%Y-%m-%d")
-        print(type(start_time))
-        logger.info(f"{to_datetime_str(start_time)}-{to_datetime_str(end_time)}")
+        logger.info(f"Processing mosaic for {year_month}: {start_time} - {end_time}")
 
-        #date_str = pd.to_datetime(time_index).strftime("%Y-%m")
-        os.makedirs(f"monthly-mosaic-{to_datetime_str(start_time)}-{to_datetime_str(end_time)}")
-        output_file = os.path.join(f"monthly-mosaic-{to_datetime_str(start_time)}-{to_datetime_str(end_time)}", f"monthly-mosaic-{to_datetime_str(start_time)}-{to_datetime_str(end_time)}.tif")
+        # Create output directory
+        output_dir = f"monthly-mosaic-{year_month}"
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Save the raster
+        output_file = os.path.join(output_dir, f"monthly-mosaic-{year_month}.tif")
         image.rio.to_raster(
             output_file,
             driver="COG",
@@ -195,8 +205,10 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
             blocksize=256,
             overview_resampling=Resampling.nearest,
         )
+
+        # Generate STAC Item
         mosaic_items.append(create_monthly_stac_item(start_time, end_time, output_file))
-        print(f"Saved monthly mosaic as {output_file}")
+        logger.info(f"Saved monthly mosaic: {output_file}")
 
 
     catalog = create_catalog(mosaic_items)
