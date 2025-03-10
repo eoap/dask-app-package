@@ -34,10 +34,10 @@ $graph:
       default: "sentinel-2-l2a"
     resolution:
       type: int
-    max-items: 
+    max_items: 
       type: int
       default: 1000
-    max-cloud-cover:
+    max_cloud_cover:
       type: int
       default: 25
   outputs:
@@ -53,8 +53,8 @@ $graph:
         bands: bands
         collection: collection
         resolution: resolution
-        max_items: max-items
-        max_cloud_cover: max-cloud-cover
+        max_items: max_items
+        max_cloud_cover: max_cloud_cover
       out: 
       - stac-catalog
       run:
