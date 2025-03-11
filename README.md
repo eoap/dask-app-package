@@ -119,6 +119,20 @@ Clone the repository:
 git clone https://github.com/eoap/dev-platform-eoap.git 
 ```
 
+Change directory to `dask-gateway`
+
+```
+cd dask-gateway
+```
+
+Use `skaffold` to deploy Code server and Dask Gateway:
+
+
+```
+skaffold dev
+```
+
+Use the port-forwards to access the services. 
 
 ## License
 
