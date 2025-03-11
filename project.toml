@@ -9,7 +9,7 @@ engine = "cluster"
 [build.cluster]
 namespace = "eoap-dask-gateway"
 serviceAccount = "kaniko-sa"
-registry = "cr.terradue.com/earthquake-monitoring"
+registry = "ghcr.io/eoap"
 secret = "kaniko-secret"
 
 [tools.cloudless-mosaic]
@@ -18,7 +18,7 @@ path = "cwl-workflows/monthly-composite.cwl#cloudless-mosaic"
 
 
 [[workflows]]
-path = "cwl-workflows/monthly-composite.cwl#cloudless-mosaic"
+path = "cwl-workflows/monthly-composite.cwl#main"
 
 
 [[workflows.tests]]
@@ -33,7 +33,7 @@ aoi = "-122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920
 collection = "sentinel-2-l2a"
 bands = ["nir", "red", "green"]
 max_cloud_cover = 25
-max_items = 1000
+max_items = 1000 
 
 [workflows.tests.execution.cluster]
 usage_report = "usage.json"
