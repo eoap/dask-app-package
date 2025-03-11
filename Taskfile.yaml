@@ -6,6 +6,7 @@ includes:
 tasks:
 
   build-debug:
+    silent: true
     cmds: 
     - defer: rm -f skaffold-auto.yaml
     - task: remote:prepare-kaniko
