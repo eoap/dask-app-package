@@ -1,7 +1,7 @@
 version: '3'
 
 includes:
-  remote: https://raw.githubusercontent.com/eoap/task-files/refs/heads/feature-2/build-test/Taskfile.yaml
+  remote: https://raw.githubusercontent.com/eoap/task-files/refs/tags/0.1.0/build-test/Taskfile.yaml
   
 tasks:
 
