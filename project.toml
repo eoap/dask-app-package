@@ -37,7 +37,7 @@ max_items = 1000
 
 [workflows.tests.execution.cluster]
 usage_report = "usage.json"
-pool_logs_basepath = "logs"
+tool_logs_basepath = "logs"
 max_ram = "4G"
 max_cores = 8
 pod_serviceaccount = "calrissian-sa"
@@ -50,4 +50,3 @@ stdout = "results.json"
 stderr = "app.log"
 tmp_outdir_prefix = "tmp"
 outdir = "results"
-tool_logs_basepath = "logs"
