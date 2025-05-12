@@ -12,11 +12,11 @@ def apply_rio_color(ops, channel, c_red, c_green, c_blue):
         arr = func(arr)
     return (arr[channel, :, :] * 255).astype(np.uint8)
 
-def apply_rio_color_red(c_red, c_green, c_blue):
-    return apply_rio_color(0, c_red, c_green, c_blue)
+def apply_rio_color_red(ops, c_red, c_green, c_blue):
+    return apply_rio_color(ops, 0, c_red, c_green, c_blue)
 
-def apply_rio_color_green(c_red, c_green, c_blue):
-    return apply_rio_color(1, c_red, c_green, c_blue)
+def apply_rio_color_green(ops, c_red, c_green, c_blue):
+    return apply_rio_color(ops, 1, c_red, c_green, c_blue)
 
-def apply_rio_color_blue(c_red, c_green, c_blue):
-    return apply_rio_color(2, c_red, c_green, c_blue)
+def apply_rio_color_blue(ops, c_red, c_green, c_blue):
+    return apply_rio_color(ops, 2, c_red, c_green, c_blue)
