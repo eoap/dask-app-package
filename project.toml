@@ -55,3 +55,27 @@ outdir = "results"
 
 [[workflows]]
 path = "cwl-workflows/eopf-sentinel-2.cwl#main"
+
+[[workflows.tests]]
+name = "eopf-sentinel-2-test-1"
+description = "Test case 1 for eopf-sentinel-2."
+
+[workflows.tests.params]
+resolution = 100 
+item-url = "https://objectstore.eodc.eu:2222/e05ab01a9d56408d82ac32d69a5aae2a:sample-data/tutorial_data/cpm_v253/S2B_MSIL1C_20250113T103309_N0511_R108_T32TLQ_20250113T122458.zarr"
+
+[workflows.tests.execution.cluster]
+usage_report = "usage.json"
+tool_logs_basepath = "logs"
+max_ram = "4G"
+max_cores = 8
+pod_serviceaccount = "calrissian-sa"
+dask_gateway = true
+debug = true
+
+[workflows.tests.execution.paths]
+volume = "/calrissian/eopf-sentinel-2"
+stdout = "results.json"
+stderr = "app.log"
+tmp_outdir_prefix = "tmp"
+outdir = "results"
