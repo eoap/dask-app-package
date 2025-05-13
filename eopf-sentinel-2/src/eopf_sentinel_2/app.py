@@ -10,7 +10,7 @@ from loguru import logger
 from dask_gateway import Gateway
 from rio_color.operations import parse_operations
 
-def apply_rio_color(ops, channel, c_red, c_green, c_blue):
+def apply_rio_color(channel, c_red, c_green, c_blue, ops):
     arr = np.stack([np.clip(c_red, 0, 1), 
                     np.clip(c_green, 0, 1), 
                     np.clip(c_blue, 0, 1)], axis=0)
@@ -21,24 +21,26 @@ def apply_rio_color(ops, channel, c_red, c_green, c_blue):
         arr = func(arr)
     return (arr[channel, :, :] * 255).astype(np.uint8)
 
-def apply_rio_color_red(ops, c_red, c_green, c_blue):
-    return apply_rio_color(ops, 0, c_red, c_green, c_blue)
+def apply_rio_color_red(c_red, c_green, c_blue, ops):
+    return apply_rio_color(0, c_red, c_green, c_blue, ops)
 
-def apply_rio_color_green(ops, c_red, c_green, c_blue):
-    return apply_rio_color(ops, 1, c_red, c_green, c_blue)
+def apply_rio_color_green(c_red, c_green, c_blue, ops):
+    return apply_rio_color(1, c_red, c_green, c_blue, ops)
 
-def apply_rio_color_blue(ops, c_red, c_green, c_blue):
-    return apply_rio_color(ops, 2, c_red, c_green, c_blue)
+def apply_rio_color_blue(c_red, c_green, c_blue, ops):
+    return apply_rio_color(2, c_red, c_green, c_blue, ops)
 
 def normalized_difference(band1, band2):
     return (band1 - band2) / (band1 + band2)
 
 def main(item_url:str) -> None:
 
-    logger.info(f"Area of interest")
+    logger.info(f"Processing started...")
 
     item = pystac.read_file(item_url)
 
+    logger.info(f"Processing item {item.id}")
+    
     remote_product_path = item.get_assets().get("product").href 
 
     dt = xr.open_datatree(remote_product_path, engine="zarr", chunks={})
@@ -73,19 +75,21 @@ def main(item_url:str) -> None:
 
     ndwi = ndwi.rio.write_crs(epsg, inplace=True)
 
-    ops = "gamma b 1.85, gamma rg 1.95" #, sigmoidal rgb 35 0.13"# , saturation 1.15"
+    ops = "gamma b 1.85, sigmoidal rgb 35 0.13"# , saturation 1.15"
 
     # Apply the color correction using Dask and xarray
     color_corrected_red = xr.apply_ufunc(
         apply_rio_color_red,
-        ops, red, green, blue,
+        red, green, blue,
+        kwargs={"ops": ops},
         output_dtypes=[np.uint8],
         dask="parallelized",
     )
 
     color_corrected_green = xr.apply_ufunc(
         apply_rio_color_green,
-        ops, red, green, blue,
+        red, green, blue,
+        kwargs={"ops": ops},
         output_dtypes=[np.uint8],
         dask="parallelized",
     )
@@ -93,6 +97,7 @@ def main(item_url:str) -> None:
     color_corrected_blue = xr.apply_ufunc(
         apply_rio_color_blue,
         red, green, blue,
+        kwargs={"ops": ops},
         output_dtypes=[np.uint8],
         dask="parallelized",
     )
@@ -110,21 +115,24 @@ def main(item_url:str) -> None:
 
     color_corrected_red = xr.apply_ufunc(
         apply_rio_color_red,
-        ops, swir16_resampled, nir, red,
+        swir16_resampled, nir, red,
+        kwargs={"ops": ops},
         output_dtypes=[np.uint8],
         dask="parallelized",
     )
 
     color_corrected_green = xr.apply_ufunc(
         apply_rio_color_green,
-        ops, swir16_resampled, nir, red,
+        swir16_resampled, nir, red,
+        kwargs={"ops": ops},
         output_dtypes=[np.uint8],
         dask="parallelized",
     )
 
     color_corrected_blue = xr.apply_ufunc(
         apply_rio_color_blue,
-        ops, swir16_resampled, nir, red,
+        swir16_resampled, nir, red,
+        kwargs={"ops": ops},
         output_dtypes=[np.uint8],
         dask="parallelized",
     )
@@ -137,14 +145,19 @@ def main(item_url:str) -> None:
     vea = vea.rio.set_spatial_dims('x', 'y', inplace=True)
 
     # Trigger the computation and save as GeoTIFF
+    logger.info("Compute RGB composite")
     rgb.compute().rio.to_raster('overview-rgb.tif')
+    logger.info("Compute NDVI")
     ndvi.compute().rio.to_raster('ndvi.tif')
+    logger.info("Compute NDWI")
     ndwi.compute().rio.to_raster('ndwi.tif')
+    logger.info("Compute VEA composite")
     vea.compute().rio.to_raster('overview-vea.tif')
 
     out_item = pystac.Item(
         id=item.id + "-processed",
         bbox=item.bbox,
+        geometry=item.geometry,
         datetime=item.datetime,
         properties=item.properties,
     )

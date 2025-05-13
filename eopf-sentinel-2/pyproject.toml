@@ -37,6 +37,8 @@ dependencies = [
   "rio-stac",
   "rio-color",
   "click",
+  "bokeh==3.6.2",
+  "xarray[complete]",
 ]
 
 [tool.hatch.metadata]
