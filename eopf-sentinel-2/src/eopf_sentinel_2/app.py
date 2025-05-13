@@ -57,8 +57,8 @@ def main(item_url:str) -> None:
         normalized_difference,
         red,
         nir,
-        dask="parallelized",
         output_dtypes=[np.float32],
+        dask="parallelized",
     )
 
     ndvi = ndvi.rio.write_crs(epsg, inplace=True)
@@ -67,8 +67,8 @@ def main(item_url:str) -> None:
         normalized_difference,
         green,
         nir,
-        dask="parallelized",
         output_dtypes=[np.float32],
+        dask="parallelized",
     )
 
     ndwi = ndwi.rio.write_crs(epsg, inplace=True)
@@ -79,21 +79,22 @@ def main(item_url:str) -> None:
     color_corrected_red = xr.apply_ufunc(
         apply_rio_color_red,
         ops, red, green, blue,
-        dask='parallelized',
+        output_dtypes=[np.uint8],
+        dask="parallelized",
     )
 
     color_corrected_green = xr.apply_ufunc(
         apply_rio_color_green,
         ops, red, green, blue,
-        dask='parallelized',
         output_dtypes=[np.uint8],
+        dask="parallelized",
     )
 
     color_corrected_blue = xr.apply_ufunc(
         apply_rio_color_blue,
         red, green, blue,
-        dask='parallelized',
         output_dtypes=[np.uint8],
+        dask="parallelized",
     )
 
     # Combine the corrected channels into a single array
@@ -110,21 +111,22 @@ def main(item_url:str) -> None:
     color_corrected_red = xr.apply_ufunc(
         apply_rio_color_red,
         ops, swir16_resampled, nir, red,
-        dask='parallelized',
+        output_dtypes=[np.uint8],
+        dask="parallelized",
     )
 
     color_corrected_green = xr.apply_ufunc(
         apply_rio_color_green,
         ops, swir16_resampled, nir, red,
-        dask='parallelized',
         output_dtypes=[np.uint8],
+        dask="parallelized",
     )
 
     color_corrected_blue = xr.apply_ufunc(
         apply_rio_color_blue,
         ops, swir16_resampled, nir, red,
-        dask='parallelized',
         output_dtypes=[np.uint8],
+        dask="parallelized",
     )
 
     # Combine the corrected channels into a single array

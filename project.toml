@@ -16,10 +16,12 @@ secret = "kaniko-secret"
 context = "cloudless-mosaic"
 path = "cwl-workflows/monthly-composite.cwl#cloudless-mosaic"
 
+[tools.eopf-sentinel-2]
+context = "eopf-sentinel-2"
+path = "cwl-workflows/eopf-sentinel-2.cwl#eopf-sentinel-2"
 
 [[workflows]]
 path = "cwl-workflows/monthly-composite.cwl#main"
-
 
 [[workflows.tests]]
 name = "cloudless-mosaic-test-1"
@@ -50,3 +52,6 @@ stdout = "results.json"
 stderr = "app.log"
 tmp_outdir_prefix = "tmp"
 outdir = "results"
+
+[[workflows]]
+path = "cwl-workflows/eopf-sentinel-2.cwl#main"
