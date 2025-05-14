@@ -9,6 +9,9 @@ import numpy as np
 from loguru import logger
 from dask_gateway import Gateway
 from rio_color.operations import parse_operations
+import rasterio
+from rasterio.enums import Resampling
+from shutil import move
 
 def apply_rio_color(channel, c_red, c_green, c_blue, ops):
     arr = np.stack([np.clip(c_red, 0, 1), 
@@ -65,6 +68,9 @@ def main(item_url:str) -> None:
 
     ndvi = ndvi.rio.write_crs(epsg, inplace=True)
 
+    logger.info("Compute NDVI")
+    ndvi.compute().astype('float32').rio.to_raster('ndvi.tif', driver="GTiff", compress="LZW")
+    
     ndwi = xr.apply_ufunc(
         normalized_difference,
         green,
@@ -75,8 +81,11 @@ def main(item_url:str) -> None:
 
     ndwi = ndwi.rio.write_crs(epsg, inplace=True)
 
-    ops = "gamma b 1.85, sigmoidal rgb 35 0.13"# , saturation 1.15"
+    logger.info("Compute NDWI")
+    ndwi.compute().astype('float32').rio.to_raster('ndwi.tif', driver="GTiff", compress="LZW")
 
+    ops = "gamma b 1.85, gamma rg 1.95"
+    
     # Apply the color correction using Dask and xarray
     color_corrected_red = xr.apply_ufunc(
         apply_rio_color_red,
@@ -109,8 +118,9 @@ def main(item_url:str) -> None:
     rgb = rgb.rio.write_crs(epsg, inplace=True)
     rgb = rgb.rio.set_spatial_dims('x', 'y', inplace=True)
 
-   
-
+    logger.info("Compute RGB composite")
+    rgb.compute().rio.to_raster('overview-rgb.tif', driver="GTiff", compress="LZW")
+     
     ops = "gamma b 1.85, gamma rg 1.95"
 
     color_corrected_red = xr.apply_ufunc(
@@ -145,14 +155,10 @@ def main(item_url:str) -> None:
     vea = vea.rio.set_spatial_dims('x', 'y', inplace=True)
 
     # Trigger the computation and save as GeoTIFF
-    logger.info("Compute RGB composite")
-    rgb.compute().rio.to_raster('overview-rgb.tif')
-    logger.info("Compute NDVI")
-    ndvi.compute().rio.to_raster('ndvi.tif')
-    logger.info("Compute NDWI")
-    ndwi.compute().rio.to_raster('ndwi.tif')
     logger.info("Compute VEA composite")
-    vea.compute().rio.to_raster('overview-vea.tif')
+    vea.compute().rio.to_raster('overview-vea.tif', driver="GTiff", compress="LZW")
+
+    logger.info("Create STAC Item")    
 
     out_item = pystac.Item(
         id=item.id + "-processed",
@@ -204,6 +210,14 @@ def main(item_url:str) -> None:
     catalog.add_item(out_item)
     catalog.normalize_hrefs("catalog.json")
     catalog.save(pystac.CatalogType.SELF_CONTAINED)
+
+    logger.info("Add overviews")
+    for raster in ["ndvi.tif", "ndwi.tif", "overview-rgb.tif", "overview-vea.tif"]:
+        with rasterio.open(raster, "r+") as dst:
+            # Build overviews at 2x, 4x, 8x, 16x, etc.
+            dst.build_overviews([2, 4, 8, 16], Resampling.average)
+            dst.update_tags(ns='rio_overview', resampling='average')
+        move(raster, os.path.join(out_item.id, raster))
 
 @click.command()
 @click.option("--item-url", "item_url", required=True, help="STAC Item URL")
