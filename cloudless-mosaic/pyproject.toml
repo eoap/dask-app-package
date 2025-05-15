@@ -44,6 +44,7 @@ dependencies = [
   "xarray-spatial",
   "shapely",
   "rio-stac",
+  "pyarrow",
 ]
 
 [tool.hatch.metadata]
