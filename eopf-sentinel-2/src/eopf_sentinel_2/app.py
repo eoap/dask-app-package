@@ -46,7 +46,7 @@ def main(item_url:str) -> None:
     
     remote_product_path = item.get_assets().get("product").href 
 
-    dt = xr.open_datatree(remote_product_path, engine="zarr", chunks={})
+    dt = xr.open_datatree(remote_product_path, engine="zarr", chunks={}, decode_timedelta=True)
 
     red = dt["measurements/reflectance/r10m"]["b04"].chunk({"x": 512, "y": 512})
     green = dt["measurements/reflectance/r10m"]["b03"].chunk({"x": 512, "y": 512})

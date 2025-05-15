@@ -62,7 +62,7 @@ description = "Test case 1 for eopf-sentinel-2."
 
 [workflows.tests.params]
 resolution = 100 
-item-url = "https://objectstore.eodc.eu:2222/e05ab01a9d56408d82ac32d69a5aae2a:sample-data/tutorial_data/cpm_v253/S2B_MSIL1C_20250113T103309_N0511_R108_T32TLQ_20250113T122458.zarr"
+item-url = "https://stac.core.eopf.eodc.eu/collections/sentinel-2-l1c/items/S2B_MSIL1C_20250113T103309_N0511_R108_T32TLQ_20250113T122458"
 
 [workflows.tests.execution.cluster]
 usage_report = "usage.json"
