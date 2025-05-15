@@ -14,14 +14,14 @@ secret = "kaniko-secret"
 
 [tools.cloudless-mosaic]
 context = "cloudless-mosaic"
-path = "cwl-workflows/monthly-composite.cwl#cloudless-mosaic"
+path = "cwl-workflows/cloudless-mosaic.cwl#cloudless-mosaic"
 
 [tools.eopf-sentinel-2]
 context = "eopf-sentinel-2"
 path = "cwl-workflows/eopf-sentinel-2.cwl#eopf-sentinel-2"
 
 [[workflows]]
-path = "cwl-workflows/monthly-composite.cwl#main"
+path = "cwl-workflows/cloudless-mosaic.cwl#main"
 
 [[workflows.tests]]
 name = "cloudless-mosaic-test-1"

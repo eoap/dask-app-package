@@ -34,7 +34,7 @@ dependencies = [
   "distributed==2025.4.0",
   "dask-gateway==2025.4.0",
   "pystac",
-  "bokeh==3.6.2",
+  "bokeh==3.7.3",
   "rioxarray==0.18.1",
   "loguru==0.7.3",
   "odc-stac[botocore]==0.3.10",

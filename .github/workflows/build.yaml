@@ -82,24 +82,23 @@ jobs:
 
     strategy:
       matrix:
-        step: ["monthly-composite"]
+        step: ["cloudless-mosaic", "eopf-sentinel-2"]
 
     steps:
     - uses: actions/checkout@v2
     - run: |
         set -x
-        container=cloudless-mosaic
-        tag="ghcr.io/eoap/dask-app-package/cloudless-mosaic:${{needs.version.outputs.app-version}}"
+        tag="ghcr.io/eoap/dask-app-package/${{matrix.step}}:${{needs.version.outputs.app-version}}"
         docker pull ${tag}
         shatag=$( docker inspect ${tag} | yq -r '.[0]["RepoDigests"][0]' )
-        s="${container}" t="${shatag}" yq -i eval '(.$graph[] | select (.id == env(s)) ).requirements.DockerRequirement.dockerPull = env(t)' cwl-workflows/${{matrix.step}}.cwl
+        s="${{matrix.step}}" t="${shatag}" yq -i eval '(.$graph[] | select (.id == env(s)) ).requirements.DockerRequirement.dockerPull = env(t)' cwl-workflows/${{matrix.step}}.cwl
     - run: |
         set -x
-        r=$( cat cloudless-mosaic/codemeta.json | jq -r ".codeRepository" ) yq -i eval '."s:codeRepository" = {"URL" : env(r)}' cwl-workflows/${{matrix.step}}.cwl
+        r=$( cat ${{matrix.step}}/codemeta.json | jq -r ".codeRepository" ) yq -i eval '."s:codeRepository" = {"URL" : env(r)}' cwl-workflows/${{matrix.step}}.cwl
         v="${{needs.version.outputs.app-version}}" yq -i eval '."s:softwareVersion" = env(v)' cwl-workflows/${{matrix.step}}.cwl
-        n=$(cat cloudless-mosaic/codemeta.json | jq -r '(.author[0].givenName + " " + .author[0].familyName)') \
-        e=$(cat cloudless-mosaic/codemeta.json | jq -r '.author[0].email') \
-        a=$(cat cloudless-mosaic/codemeta.json | jq -r '.author[0].affiliation["name"]') \
+        n=$(cat ${{matrix.step}}/codemeta.json | jq -r '(.author[0].givenName + " " + .author[0].familyName)') \
+        e=$(cat ${{matrix.step}}/codemeta.json | jq -r '.author[0].email') \
+        a=$(cat ${{matrix.step}}/codemeta.json | jq -r '.author[0].affiliation["name"]') \
         yq eval -i  '."s:author" += [{"class": "s:Person", "s.name": env(n), "s.email": env(e), "s.affiliation": env(a)}]' cwl-workflows/${{matrix.step}}.cwl
     - name: Cleanup downloads folder
       run: rm -rf downloads/*

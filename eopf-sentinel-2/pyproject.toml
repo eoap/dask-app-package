@@ -37,7 +37,7 @@ dependencies = [
   "rio-stac",
   "rio-color",
   "click",
-  "bokeh==3.6.2",
+  "bokeh==3.7.3",
   "xarray[complete]",
 ]
 
