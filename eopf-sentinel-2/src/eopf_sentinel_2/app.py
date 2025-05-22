@@ -92,7 +92,7 @@ def main(item_url: str) -> None:
 
 
     # Vegetation indexes
-    logger.info("Define NDVI and NDWI")
+    logger.info("Define vegetation indexes")
     ndvi = compute_index(nir, red, epsg)
     ndwi = compute_index(green, nir, epsg)
     ndmir = compute_index(swir16_resampled, swir22_resampled, epsg)
@@ -103,7 +103,7 @@ def main(item_url: str) -> None:
 
     # Color correction
     ops = "gamma b 1.85, gamma rg 1.95"
-    logger.info("Define RGB and VEA composites")
+    logger.info("Define composites")
     rgb = apply_color_correction((red, green, blue), ops, epsg)
     vea = apply_color_correction((swir16_resampled, swir22_resampled, red), ops, epsg)
     civ = apply_color_correction((nir, red, green), ops, epsg)
@@ -160,13 +160,13 @@ def main(item_url: str) -> None:
     )
 
     asset_map = {
-        "overview_rgb": (rgb_tif, ["visual"]),
-        "overview_vea": (vea_tif, ["visual"]),
-        "overview_civ": (civ_tif, ["visual"]),
-        "overview_law": (law_tif, ["visual"]),
-        "overview_sir": (sir_tif, ["visual"]),
-        "overview_fcu": (fcu_tif, ["visual"]),
-        "overview_atp": (atp_tif, ["visual"]),
+        "overview-rgb": (rgb_tif, ["visual"]),
+        "overview-vea": (vea_tif, ["visual"]),
+        "overview-civ": (civ_tif, ["visual"]),
+        "overview-law": (law_tif, ["visual"]),
+        "overview-sir": (sir_tif, ["visual"]),
+        "overview-fcu": (fcu_tif, ["visual"]),
+        "overview-atp": (atp_tif, ["visual"]),
         "ndvi": (ndvi_tif, ["data"]),
         "ndwi": (ndwi_tif, ["data"]),
         "ndmir": (ndmir_tif, ["data"]),
@@ -184,8 +184,8 @@ def main(item_url: str) -> None:
 
     catalog = pystac.Catalog(
         id="processing-results",
-        description="Sentinel-2 RGB mosaics and vegetation indexes",
-        title="Sentinel-2 RGB mosaics and vegetation indexes",
+        description="Sentinel-2 RGB composites and vegetation indexes",
+        title="Sentinel-2 RGB composites and vegetation indexes",
     )
 
     catalog.add_item(out_item)
@@ -195,9 +195,9 @@ def main(item_url: str) -> None:
     # Build overviews and move outputs
     logger.info("Add overviews")
     os.makedirs(out_item.id, exist_ok=True)
-    for tif in [ndvi_tif, ndwi_tif, rgb_tif, vea_tif]:
-        build_overviews(tif)
-        move(tif, os.path.join(out_item.id, tif))
+    for asset_id, _ in asset_map.items():
+        build_overviews(f"{asset_id}.tif")
+        move(f"{asset_id}.tif", os.path.join(out_item.id, f"{asset_id}.tif"))
 
 
 @click.command()
