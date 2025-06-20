@@ -3,15 +3,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cloudless-mosaic"
+name = "eopf-sentinel-2"
 dynamic = ["version"]
-description = 'Calrissian-Dask demo app-package'
+description = 'EOPF Sentinel-2'
 requires-python = ">=3.8"
 license = "MIT"
 keywords = ["Dask", "Calrissian"]
-
-
-
 
 authors = [
   { name = "Leonardo Mizzoni", email = "leonardo.mizzoni@terradue.com" },
@@ -34,35 +31,32 @@ dependencies = [
   "distributed==2025.4.0",
   "dask-gateway==2025.4.0",
   "pystac",
-  "bokeh==3.7.3",
   "rioxarray==0.18.1",
   "loguru==0.7.3",
-  "odc-stac[botocore]==0.3.10",
-  "stackstac==0.5.1",
-  "pystac-client",
-  "planetary-computer",
   "xarray-spatial",
-  "shapely",
   "rio-stac",
-  "pyarrow",
+  "rio-color",
+  "click",
+  "bokeh==3.7.3",
+  "xarray[complete]",
 ]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.version]
-path = "src/cloudless_mosaic/__about__.py"
+path = "src/eopf_sentinel_2/__about__.py"
 
-source_pkgs = ["src/cloudless_mosaic"]
+source_pkgs = ["src/eopf_sentinel_2"]
 
 [project.scripts]
-cloudless-mosaic = "cloudless_mosaic.app:start"
+eopf-sentinel-2-proc = "eopf_sentinel_2.app:start"
 
 [tool.hatch.envs.dev]
 python = "3.10"
 
 [tool.hatch.envs.prod]
 python = "3.10"
-path = "/app/envs/cloudless-mosaic"
+path = "/app/envs/eopf_sentinel_2"
 
 

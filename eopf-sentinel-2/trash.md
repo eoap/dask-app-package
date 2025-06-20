@@ -1,0 +1,1 @@
+see https://github.com/EOPF-Sample-Service/eopf-sample-notebooks/blob/main/notebooks/Sentinel-2/Sentinel-2_L1C_MSI_Zarr_product_exploration.ipynb
