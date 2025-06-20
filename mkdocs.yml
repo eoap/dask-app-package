@@ -1,0 +1,82 @@
+site_name: Application Packaging with Dask
+
+theme:
+    logo: imgs/icon-eoap.png
+    name: material
+
+    palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+plugins:
+  - search
+  - mermaid2:
+      version: 10.6.0
+
+markdown_extensions:
+  - pymdownx.details
+  - abbr
+  - admonition
+  - footnotes
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_div_format
+  - attr_list
+  - pymdownx.snippets:
+      base_path: './'
+  - pymdownx.highlight:
+      line_spans: __span
+extra_css:
+  - styles/css/app.css
+  
+extra_javascript:
+  - javascripts/config.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  
+
+nav:
+  - Introduction: 'index.md'
+  - DaskGatewayRequirement CWL extension: 'calrissian-dask.md'
+  - Application Packaging process:
+      - Overview: 'packaging/index.md'
+      - Command-line tool: 'packaging/cli.md'
+      - Build and test the containers: 'packaging/container.md'
+      - CWL Workflow: 'packaging/workflow.md'
+      - Execute the CWL Workflow: 'packaging/execute.md'
+      - Release the Application Package: 'packaging/release.md'
+  - Introducing the applications:
+    - Cloudless monthly mosaic: apps/cloudless-mosaic/index.md
+    - EOPF Sentinel-2: apps/eopf-sentinel-2/index.md
+  - Hands-on: 
+    - Cloudless monthly mosaic: 
+        - Command-line tool: apps/cloudless-mosaic/cli.md
+        - Build and test the containers: apps/cloudless-mosaic/container.md
+        - CWL Workflow: apps/cloudless-mosaic/workflow.md
+        - Execute the CWL Workflow: apps/cloudless-mosaic/execute.md
+        - Release the Application Package: apps/cloudless-mosaic/release.md
+    - EOPF Sentinel-2:
+        - Command-line tool: apps/eopf-sentinel-2/cli.md
+        - Build and test the containers: apps/eopf-sentinel-2/container.md
+        - CWL Workflow: apps/eopf-sentinel-2/workflow.md
+        - Execute the CWL Workflow: apps/eopf-sentinel-2/execute.md
+        - Release the Application Package: apps/eopf-sentinel-2/release.md
+  - Conclusion: 'conclusion.md'
+  
+copyright: <a href="https://img.shields.io/badge/License-CC_BY--SA_4.0-lightgrey.svg">License CC BY-SA 4.0</a>, by <a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons</a>
