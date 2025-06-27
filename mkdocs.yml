@@ -67,16 +67,16 @@ nav:
   - Hands-on: 
     - Cloudless monthly mosaic: 
         - Command-line tool: apps/cloudless-mosaic/cli.md
-        - Build and test the containers: apps/cloudless-mosaic/container.md
+        # - Build and test the containers: apps/cloudless-mosaic/container.md
         - CWL Workflow: apps/cloudless-mosaic/workflow.md
         - Execute the CWL Workflow: apps/cloudless-mosaic/execute.md
-        - Release the Application Package: apps/cloudless-mosaic/release.md
+        # - Release the Application Package: apps/cloudless-mosaic/release.md
     - EOPF Sentinel-2:
         - Command-line tool: apps/eopf-sentinel-2/cli.md
-        - Build and test the containers: apps/eopf-sentinel-2/container.md
+        # - Build and test the containers: apps/eopf-sentinel-2/container.md
         - CWL Workflow: apps/eopf-sentinel-2/workflow.md
         - Execute the CWL Workflow: apps/eopf-sentinel-2/execute.md
-        - Release the Application Package: apps/eopf-sentinel-2/release.md
+        # - Release the Application Package: apps/eopf-sentinel-2/release.md
   - Conclusion: 'conclusion.md'
   
 copyright: <a href="https://img.shields.io/badge/License-CC_BY--SA_4.0-lightgrey.svg">License CC BY-SA 4.0</a>, by <a href="https://creativecommons.org/licenses/by-sa/4.0/">Creative Commons</a>
