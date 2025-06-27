@@ -97,9 +97,9 @@ spec:
             - /calrissian/usage.json
             - --tool-logs-basepath 
             - /calrissian/logs
-            - dask-gateway-url
+            - --dask-gateway-url
             - "http://traefik-dask-gateway.eoap-dask-gateway.svc.cluster.local:80"
-            - https://github.com/eoap/dask-app-package/releases/download/1.0.1/eopf-sentinel-2.1.0.1.cwl \
+            - https://github.com/eoap/dask-app-package/releases/download/1.0.1/eopf-sentinel-2.1.0.1.cwl
             - --input-url 
             - "https://stac.core.eopf.eodc.eu/collections/sentinel-2-l1c/items/S2B_MSIL1C_20250113T103309_N0511_R108_T32TLQ_20250113T122458"
           volumeMounts:
