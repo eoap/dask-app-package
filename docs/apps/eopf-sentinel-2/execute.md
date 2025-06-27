@@ -10,6 +10,25 @@ To enable parallel processing with Dask, a Dask Gateway object is required to cr
 
 * **Dask Gateway Deployment**: It is assumed that a Dask Gateway is already deployed and accessible. The [dev-platform-eoap repository](https://github.com/eoap/dev-platform-eoap/tree/main/dask-gateway) provides a streamlined method for deploying Dask Gateway on Kubernetes, which can then be integrated with a Code-Server for module execution.
 
+* **Dask Worker Image**: For Dask to utilize your module's dependencies and code, a custom Docker image for the Dask workers must be built and made accessible to the Kubernetes cluster. This image should contain all the necessary Python packages and your module's code.
+
+  * **Building and Providing the Worker Image**:
+  The easiest way to build the worker image for this module is to navigate into the `eopf-sentinel-2/` directory (where the Dockerfile for  the worker is located) and run a Docker build command:
+    ```bash
+    cd eopf-sentinel-2/
+    docker build -t eopf-sentinel-2-worker:latest .
+    ```
+    Once built, this image needs to be available to your Kubernetes cluster.
+
+  * **Using ttl.sh for Temporary Images**: For development or testing, ttl.sh provides an anonymous, ephemeral registry. This allows you to   quickly build and push a temporary, pullable image without authentication, which expires after a set duration (e.g., 1 hour).
+    ```bash
+    IMAGE_NAME=eopf-sentinel-2-worker
+    docker build -t ttl.sh/${IMAGE_NAME}:1h .
+    docker push ttl.sh/${IMAGE_NAME}:1h
+    echo "Temporary image available at: ttl.sh/${IMAGE_NAME}:1h"
+    ```
+    You would then use this ttl.sh image name in your Dask Gateway configuration or Calrissian workflow.
+
 Once the Dask Gateway is available, you can proceed with running the processing module:
 
 * **Direct Execution**: The [provided Jupyter Notebook](https://github.com/eoap/dask-app-package/blob/main/eopf-sentinel-2/notebook.ipynb) demonstrates how to execute the module directly using its main function.
@@ -19,7 +38,7 @@ Once the Dask Gateway is available, you can proceed with running the processing 
 
 ## Calrissian CWL Execution
 
-This module includes a Common Workflow Language (CWL) workflow, optimized for parallel processing on a Dask Cluster. A new CWL extension, DaskGatewayRequirements, has been developed to enable CWL runners like Calrissian to leverage Dask's distributed computing capabilities.
+This module includes a Common Workflow Language (CWL) workflow, optimized for parallel processing on a Dask Cluster. A new CWL extension, `DaskGatewayRequirements`, has been developed to enable CWL runners like Calrissian to leverage Dask's distributed computing capabilities.
 
 ### Environment Setup:
 

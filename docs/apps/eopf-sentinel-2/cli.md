@@ -12,6 +12,10 @@ pip install -e .
 
 The `pip install -e .` command installs the package in "editable" mode, meaning any changes to the source code will be immediately reflected without needing to reinstall.
 
+## Environment Variables
+
+Before running the CLI, ensure that the `DASK_CLUSTER` environment variable is set to point to your Dask cluster's address. This is crucial for the application to connect to the distributed processing environment.
+
 ## Basic Usage and Help
 
 To view the available commands, options, and a comprehensive help message for the eopf-sentinel-2-proc command, execute:
