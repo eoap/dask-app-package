@@ -11,6 +11,8 @@ on:
     - codemeta.json
     - .github/**
     - cloudless-mosaic/**
+    - eopf-sentinel-2/**
+    - cwl-workflows/**
 
 jobs:
 
