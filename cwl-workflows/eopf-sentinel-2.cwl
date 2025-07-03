@@ -38,8 +38,8 @@ $graph:
         workerCores: 1
         workerCoresLimit: 1
         workerMemory: "4G"
-        clusterMaxCore: 5
-        clusterMaxMemory: "20G"
+        clusterMaxCore: 10
+        clusterMaxMemory: "40G"
     baseCommand: ["eopf-sentinel-2-proc"]
     arguments: []
     inputs:
