@@ -31,7 +31,7 @@ $graph:
     id: eopf-sentinel-2
     requirements:
       DockerRequirement:
-        dockerPull: ghcr.io/eoap/dask-app-package/eopf-sentinel-2:1.0.1
+        dockerPull: ghcr.io/eoap/dask-app-package/eopf-sentinel-2:1.1.0
       EnvVarRequirement:
         envDef: {}
       calrissian:DaskGatewayRequirement:
