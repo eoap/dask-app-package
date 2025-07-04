@@ -7,7 +7,7 @@
     "datePublished": "2024-12-08",
     "dateModified": "2025-01-02",
     "name": "Earth Observation Application Package Dask cloudless mosaics",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "description": "Earth Observation Application Package Dask cloudless mosaics",
     "developmentStatus": "active",
     "downloadUrl": "https://github.com/eoap/dask-app-package/releases/tag/1.0.0",

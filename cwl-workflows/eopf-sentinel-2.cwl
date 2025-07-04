@@ -31,15 +31,15 @@ $graph:
     id: eopf-sentinel-2
     requirements:
       DockerRequirement:
-        dockerPull: ghcr.io/eoap/dask-app-package/eopf-sentinel-2:1.0.1
+        dockerPull: ghcr.io/eoap/dask-app-package/eopf-sentinel-2:1.1.0
       EnvVarRequirement:
         envDef: {}
       calrissian:DaskGatewayRequirement:
         workerCores: 1
         workerCoresLimit: 1
         workerMemory: "4G"
-        clusterMaxCore: 5
-        clusterMaxMemory: "20G"
+        clusterMaxCore: 10
+        clusterMaxMemory: "40G"
     baseCommand: ["eopf-sentinel-2-proc"]
     arguments: []
     inputs:
