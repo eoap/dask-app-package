@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: eopf-sentinel-2
+spec:
+  ttlSecondsAfterFinished: 5
+  template:
+    spec:
+      serviceAccountName: calrissian-sa
+      containers:
+        - name: calrissian
+          image: calrissian:0.19.0-fix
+          command: ["calrissian"]
+          args:
+            - --debug
+            - --stdout 
+            - /calrissian/results.json
+            - --stderr 
+            - /calrissian/app.log
+            - --max-ram 
+            - 32G
+            - --max-cores 
+            - "8"
+            - --tmp-outdir-prefix 
+            - /calrissian/tmp/ 
+            - --outdir
+            - /calrissian/results
+            - --usage-report 
+            - /calrissian/usage.json
+            - --tool-logs-basepath 
+            - /calrissian/logs
+            - --dask-gateway-url
+            - "http://traefik-dask-gateway.eoap-dask-gateway.svc.cluster.local:80"
+            - /calrissian/eopf-sentinel-2.cwl#main
+            - --item-url
+            - https://stac.core.eopf.eodc.eu/collections/sentinel-2-l1c/items/S2B_MSIL1C_20250113T103309_N0511_R108_T32TLQ_20250113T122458
+          volumeMounts:
+            - name: calrissian-volume
+              mountPath: /calrissian
+          env:
+            - name: CALRISSIAN_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+      restartPolicy: Never
+      volumes:
+        - name: calrissian-volume
+          persistentVolumeClaim:
+            claimName: calrissian-claim    
+  backoffLimit: 3

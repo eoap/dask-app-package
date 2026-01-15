@@ -2,7 +2,7 @@ cwlVersion: v1.2
 $namespaces:
   s: https://schema.org/
   calrissian: https://calrissian-cwl.github.io/schema#
-s:softwareVersion: 1.4.1
+s:softwareVersion: 0.2.1
 schemas:
   - http://schema.org/version/9.0/schemaorg-current-http.rdf
 $graph:
@@ -30,6 +30,9 @@ $graph:
   - class: CommandLineTool
     id: eopf-sentinel-2
     requirements:
+      ResourceRequirement:
+        coresMax: 1
+        ramMax: 8192
       DockerRequirement:
         dockerPull: ghcr.io/eoap/dask-app-package/eopf-sentinel-2:1.1.0
       EnvVarRequirement:
@@ -37,8 +40,8 @@ $graph:
       calrissian:DaskGatewayRequirement:
         workerCores: 1
         workerCoresLimit: 1
-        workerMemory: "4G"
-        clusterMaxCores: 4
+        workerMemory: "8G"
+        clusterMaxCores: 2
         clusterMaxMemory: "16G"
     baseCommand: ["eopf-sentinel-2-proc"]
     arguments: []
