@@ -70,6 +70,19 @@ def build_overviews(path: str, levels: list[int] = [2, 4, 8, 16]):
         dst.update_tags(ns='rio_overview', resampling='average')
 
 
+def projection_epsg(properties):
+    """Read current proj:code or legacy proj:epsg metadata without assuming a CRS."""
+    code = properties.get("proj:code")
+    if code is None and properties.get("proj:epsg") is not None:
+        code = f"EPSG:{properties['proj:epsg']}"
+    if code is None:
+        raise ValueError("EOPF product metadata does not define an EPSG projection")
+    epsg = rasterio.crs.CRS.from_user_input(code).to_epsg()
+    if epsg is None:
+        raise ValueError(f"EOPF processing requires an EPSG projection, got {code}")
+    return epsg
+
+
 def main(item_url: str) -> None:
     logger.info("Processing started...")
     item = pystac.read_file(item_url)
@@ -78,7 +91,7 @@ def main(item_url: str) -> None:
     remote_product_path = item.assets["product"].href
     dt = xr.open_datatree(remote_product_path, engine="zarr", chunks={}, decode_timedelta=True)
 
-    epsg = dt.attrs["stac_discovery"]["properties"]["proj:epsg"]
+    epsg = projection_epsg(dt.attrs["stac_discovery"]["properties"])
 
     # Bands
     red = dt["measurements/reflectance/r10m"]["b04"].chunk({"x": 512, "y": 512}).persist()
@@ -216,5 +229,6 @@ def start(item_url):
     except Exception as e:
         logger.error("Failed to run the script: {}", e)
         logger.error(traceback.format_exc())
+        raise click.ClickException(str(e)) from e
     finally:
-        sys.exit(0)
+        gateway.close()

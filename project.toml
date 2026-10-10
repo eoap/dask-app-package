@@ -14,11 +14,11 @@ secret = "kaniko-secret"
 
 [tools.cloudless-mosaic]
 context = "cloudless-mosaic"
-path = "cwl-workflows/cloudless-mosaic.cwl#cloudless-mosaic"
+path = "cwl-workflows/cloudless-mosaic.cwl#main"
 
 [tools.eopf-sentinel-2]
 context = "eopf-sentinel-2"
-path = "cwl-workflows/eopf-sentinel-2.cwl#eopf-sentinel-2"
+path = "cwl-workflows/eopf-sentinel-2.cwl#main"
 
 [[workflows]]
 path = "cwl-workflows/cloudless-mosaic.cwl#main"
@@ -29,9 +29,9 @@ description = "Test case 1 for cloudless-mosaic."
 
 [workflows.tests.params]
 resolution = 100 
-start-date = "2018-01-01"
-end-date = "2020-12-31"
-aoi = "-122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934"
+start-date = { value = "2018-01-01" }
+end-date = { value = "2020-12-31" }
+aoi = { bbox = [-122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934], crs = "CRS84" }
 collection = "sentinel-2-l2a"
 bands = ["nir", "red", "green"]
 max_cloud_cover = 25
@@ -62,7 +62,7 @@ description = "Test case 1 for eopf-sentinel-2."
 
 [workflows.tests.params]
 resolution = 100 
-item-url = "https://stac.core.eopf.eodc.eu/collections/sentinel-2-l1c/items/S2B_MSIL1C_20250113T103309_N0511_R108_T32TLQ_20250113T122458"
+item-url = { value = "https://stac.core.eopf.eodc.eu/collections/sentinel-2-l1c/items/S2B_MSIL1C_20250113T103309_N0511_R108_T32TLQ_20250113T122458" }
 
 [workflows.tests.execution.cluster]
 usage_report = "usage.json"

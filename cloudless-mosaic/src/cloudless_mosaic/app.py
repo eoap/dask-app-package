@@ -243,5 +243,6 @@ def start(**kwargs):
     except Exception as e:
         logger.error("Failed to run the script: {}", e)
         logger.error(traceback.format_exc())
+        raise click.ClickException(str(e)) from e
     finally:
-        sys.exit(0)
+        gateway.close()

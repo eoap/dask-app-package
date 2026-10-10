@@ -177,3 +177,21 @@ end-dask.sh
   --docker-password=fakepassword \
   --docker-email=fake@example.com \
   -n eoap-dask-gateway
+## PDE acceptance and typed CWL
+
+The feature branch uses standalone CWL v1.2 documents with embedded URI, Date,
+BBox and SpectralBand schemas and documented metadata. Jobs in `project.toml`
+use records for URI/date/bounding-box inputs. Use upstream Calrissian's
+`clusterMaxCores` spelling and Dask Gateway 2025.4.0 with the course images.
+
+`cwl-workflows/gateway-acceptance.cwl` runs real tasks on two workers and records
+the computed result and worker addresses. This bounded test verifies upstream
+Calrissian's cluster creation, execution and disposal; it is separate from the
+full satellite notebook workloads. The development deployment is in the sibling
+`dev-platform-eoap/dask-gateway` folder.
+
+The cloudless/EOPF documents expose their application CommandLineTool directly
+with the original one-step workflow's inputs, defaults and outputs. This keeps
+the packages standalone and avoids the pinned upstream Calrissian nested custom
+requirement validation failure. Dask Gateway remains a mandatory requirement;
+the requirement is not downgraded to an optional hint.
