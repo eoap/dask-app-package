@@ -48,6 +48,9 @@ requirements:
   InlineJavascriptRequirement: {}
   NetworkAccess:
     networkAccess: true
+  ResourceRequirement:
+    ramMin: 4096
+    coresMin: 1
 baseCommand:
 - eopf-sentinel-2-proc
 arguments: []

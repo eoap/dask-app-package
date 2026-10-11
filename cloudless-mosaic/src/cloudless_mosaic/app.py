@@ -212,7 +212,7 @@ def main(start_date:str, end_date:str, aoi: BBox, bands: RGBBands, collection: s
 
 
     catalog = create_catalog(mosaic_items)
-    catalog.normalize_hrefs("catalog.json")
+    catalog.normalize_hrefs(".")
     catalog.save(CatalogType.SELF_CONTAINED)
 
 @click.command()
