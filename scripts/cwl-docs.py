@@ -1,6 +1,7 @@
 """Validate the module's documentation contract and render CWL Markdown."""
 
 import argparse
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -95,10 +96,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--validate",
         action="store_true",
-        help="Also validate isolated CWL with HTTP fetching disabled",
+        help="Also validate isolated CWL with approved published schemas",
     )
-    parser.add_argument("--output", type=Path, default=Path("/tmp/stac-cwl-docs"))
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    output: Path = args.output or Path(tempfile.mkdtemp(prefix="dask-cwl-docs-"))
     root = Path(__file__).resolve().parents[1]
     for path in sorted((root / "cwl-workflows").glob("*.cwl")):
         if path.name.startswith("."):
@@ -106,7 +108,6 @@ if __name__ == "__main__":
         markdown = render(path)
         if args.validate:
             import shutil
-            import tempfile
 
             from calrissian.context import CalrissianLoadingContext
             from calrissian.main import add_custom_schema
@@ -125,7 +126,7 @@ if __name__ == "__main__":
                     )
                     == 0
                 ), path
-        target = args.output / path.relative_to(root).with_suffix(".md")
+        target = output / path.relative_to(root).with_suffix(".md")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(markdown)
         print(f"Validated and rendered {path.relative_to(root)}")

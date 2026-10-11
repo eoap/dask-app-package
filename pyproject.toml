@@ -34,19 +34,22 @@ include = ["/cloudless-mosaic", "/eopf-sentinel-2", "/scripts", "/tests", "/requ
 skip-install = true
 installer = "uv"
 post-install-commands = ["uv pip install --require-hashes -r requirements/development.txt", "uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2"]
+template = "dev"
+python = "3.12"
 
 [tool.hatch.envs.dev.scripts]
-check = ["format-check", "lint-check", "typecheck", "security"]
+check = ["bootstrap", "format-check", "lint-check", "typecheck", "security"]
 format-check = "ruff format --check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
 lint-check = "ruff check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
 typecheck = "mypy cloudless-mosaic/src eopf-sentinel-2/src scripts"
 security = "bandit -r cloudless-mosaic/src eopf-sentinel-2/src scripts -ll"
+bootstrap = ["uv pip install --require-hashes -r requirements/development.txt", "uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2"]
 
 [tool.hatch.envs.test]
 template = "dev"
 
 [tool.hatch.envs.test.scripts]
-test = "pytest -q {args}"
+test = ["bootstrap", "pytest -q {args}"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--import-mode=importlib"

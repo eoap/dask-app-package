@@ -89,13 +89,16 @@ cloudless-mosaic = "cloudless_mosaic.app:start"
 skip-install = true
 installer = "uv"
 post-install-commands = ["cd .. && uv pip install --require-hashes -r requirements/development.txt", "cd .. && uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2"]
+template = "dev"
+python = "3.12"
 
 [tool.hatch.envs.dev.scripts]
-check = ["format-check", "lint-check", "typecheck", "security"]
+check = ["bootstrap", "format-check", "lint-check", "typecheck", "security"]
 format-check = "cd .. && ruff format --check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
 lint-check = "cd .. && ruff check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
 typecheck = "cd .. && mypy cloudless-mosaic/src eopf-sentinel-2/src scripts"
 security = "cd .. && bandit -r cloudless-mosaic/src eopf-sentinel-2/src scripts -ll"
+bootstrap = ["cd .. && uv pip install --require-hashes -r requirements/development.txt", "cd .. && uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2"]
 
 [tool.hatch.envs.prod]
 python = "3.12"
@@ -106,4 +109,4 @@ path = "/app/envs/cloudless-mosaic"
 template = "dev"
 
 [tool.hatch.envs.test.scripts]
-test = "cd .. && pytest -q {args}"
+test = ["bootstrap", "cd .. && pytest -q {args}"]
