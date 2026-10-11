@@ -10,7 +10,7 @@ for lesson in ['cloudless-mosaic','eopf-sentinel-2']:
     document=yaml.safe_load((root/'cwl-workflows'/f'{lesson}.cwl').read_text())
     image=os.environ.get('DASK_IMAGE',document['requirements']['DockerRequirement']['dockerPull'])
     document['requirements']['DockerRequirement']['dockerPull']=image
-    document['requirements']['ResourceRequirement']={'ramMin':2048,'coresMin':0.25}
+    document['requirements']['ResourceRequirement']={'ramMin':2048,'coresMin':0.25,'coresMax':1}
     requirement=document['requirements']['calrissian:DaskGatewayRequirement']
     requirement['clusterMaxCores']=2
     requirement['clusterMaxMemory']='2G'
