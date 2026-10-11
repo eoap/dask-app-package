@@ -12,6 +12,7 @@ from loguru import logger
 from dask_gateway import Gateway
 from rio_color.operations import parse_operations
 import rasterio
+import rio_stac
 from rasterio.enums import Resampling
 
 
@@ -83,7 +84,7 @@ def projection_epsg(properties):
     return epsg
 
 
-def main(item_url: str) -> None:
+def main(item_url: str, window_size: int | None = None) -> None:
     logger.info("Processing started...")
     item = pystac.read_file(item_url)
     logger.info(f"Processing item {item.id}")
@@ -93,16 +94,23 @@ def main(item_url: str) -> None:
 
     epsg = projection_epsg(dt.attrs["stac_discovery"]["properties"])
 
-    # Bands
-    red = dt["measurements/reflectance/r10m"]["b04"].chunk({"x": 512, "y": 512}).persist()
-    green = dt["measurements/reflectance/r10m"]["b03"].chunk({"x": 512, "y": 512}).persist()
-    blue = dt["measurements/reflectance/r10m"]["b02"].chunk({"x": 512, "y": 512})
-    nir = dt["measurements/reflectance/r10m"]["b08"].chunk({"x": 512, "y": 512}).persist()
-    # swir16 = dt["measurements/reflectance/r20m"]["b11"].chunk({"x": 512, "y": 512})
-    # swir22 = dt["measurements/reflectance/r20m"]["b12"].chunk({"x": 512, "y": 512})
-    # swir16_resampled = swir16.interp(x=red["x"], y=red["y"], method="nearest").chunk({"x": 512, "y": 512}).persist()
-    # swir22_resampled = swir22.interp(x=red["x"], y=red["y"], method="nearest").chunk({"x": 512, "y": 512}).persist()
-
+    # An optional centred window bounds acceptance work on the real product.
+    # The default processes the complete acquisition.
+    reflectance = dt["measurements/reflectance/r10m"].to_dataset()
+    if window_size is not None:
+        if window_size <= 0:
+            raise ValueError("window_size must be positive")
+        selections = {}
+        for dimension in ("x", "y"):
+            size = reflectance.sizes[dimension]
+            start = max(0, (size - window_size) // 2)
+            selections[dimension] = slice(start, min(size, start + window_size))
+        reflectance = reflectance.isel(**selections)
+        logger.info("Processing real acquisition window: {}", dict(reflectance.sizes))
+    red = reflectance["b04"].chunk({"x": 512, "y": 512}).persist()
+    green = reflectance["b03"].chunk({"x": 512, "y": 512}).persist()
+    blue = reflectance["b02"].chunk({"x": 512, "y": 512})
+    nir = reflectance["b08"].chunk({"x": 512, "y": 512}).persist()
 
     # Vegetation indexes
     logger.info("Define vegetation indexes")
@@ -164,13 +172,14 @@ def main(item_url: str) -> None:
 
     # STAC output
     logger.info("Create STAC Item")
-    out_item = pystac.Item(
-        id=item.id + "-processed",
-        bbox=item.bbox,
-        geometry=item.geometry,
-        datetime=item.datetime,
-        properties=item.properties,
+    out_item = rio_stac.stac.create_stac_item(
+        source=ndvi_tif, id=item.id + "-processed", input_datetime=item.datetime,
+        with_proj=True, with_raster=False,
     )
+    out_item.assets.clear()
+    out_item.properties["processing:source_item"] = item.get_self_href()
+    if window_size is not None:
+        out_item.properties["processing:window_size"] = window_size
 
     asset_map = {
         "overview-rgb": (rgb_tif, ["visual"]),
@@ -202,7 +211,7 @@ def main(item_url: str) -> None:
     )
 
     catalog.add_item(out_item)
-    catalog.normalize_hrefs("catalog.json")
+    catalog.normalize_hrefs(".")
     catalog.save(pystac.CatalogType.SELF_CONTAINED)
 
     # Build overviews and move outputs
@@ -215,7 +224,8 @@ def main(item_url: str) -> None:
 
 @click.command()
 @click.option("--item-url", "item_url", required=True, help="STAC Item URL")
-def start(item_url):
+@click.option("--window-size", type=click.IntRange(min=1), default=None, help="Optional centred real-product window in pixels; default processes the full product.")
+def start(item_url, window_size):
     gateway = Gateway()
     cluster_name = os.environ.get("DASK_CLUSTER")
     logger.info(f"Connecting to the Dask cluster: {cluster_name}")
@@ -224,7 +234,7 @@ def start(item_url):
     try:
         client = cluster.get_client()
         logger.info(f"Dask Dashboard: {client.dashboard_link}")
-        main(item_url)
+        main(item_url, window_size=window_size)
         logger.info("Computation completed successfully!")
     except Exception as e:
         logger.error("Failed to run the script: {}", e)

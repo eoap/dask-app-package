@@ -3,3 +3,13 @@ __pycache__
 .ruff_cache
 *.tif
 *.aux.xml
+.venv/
+.oci-venv/
+.validation-venv/
+site/
+**/catalog.json
+**/*-processed/
+**/monthly-mosaic-*/
+.metadata-venv/
+evidence/
+downloads/

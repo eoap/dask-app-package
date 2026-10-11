@@ -1,4 +1,3 @@
-# Standalone application tool; preserves the original one-step workflow interface.
 class: CommandLineTool
 id: main
 requirements:
@@ -14,6 +13,10 @@ requirements:
     clusterMaxMemory: 40G
   SchemaDefRequirement:
     types:
+    - name: '#CRS'
+      type: enum
+      symbols:
+      - '4326'
     - name: '#URI'
       type: record
       fields:
@@ -32,7 +35,7 @@ requirements:
           type: array
           items: double
       - name: crs
-        type: string
+        type: '#CRS'
     - name: '#SpectralBand'
       type: enum
       symbols:
@@ -57,6 +60,15 @@ inputs:
       valueFrom: $(self.value)
     label: item-url
     doc: item url.
+  window-size:
+    type:
+    - 'null'
+    - int
+    default: null
+    label: Real-product window
+    doc: Optional centred window in pixels; omitted to process the full acquisition.
+    inputBinding:
+      prefix: --window-size
 outputs:
   stac-catalog:
     type: Directory
@@ -70,10 +82,24 @@ cwlVersion: v1.2
 $namespaces:
   s: https://schema.org/
   calrissian: https://calrissian-cwl.github.io/schema#
-s:softwareVersion: 1.4.1
+s:softwareVersion: 2.0.0
 s:codeRepository: https://github.com/eoap/dask-app-package
 s:license: https://spdx.org/licenses/MIT.html
 s:author:
-- class: s:Person
+- '@type': s:Person
   s:name: Leonardo Mizzoni
+  s:givenName: Leonardo
+  s:familyName: Mizzoni
   s:email: leonardo.mizzoni@terradue.com
+  s:affiliation: &id001
+    '@type': s:Organization
+    s:name: Terradue
+    s:url: https://www.terradue.com
+s:name: eopf-sentinel-2
+s:description: Dask application package eopf-sentinel-2
+s:dateCreated: '2025-01-01'
+s:softwareHelp:
+  '@type': s:CreativeWork
+  s:name: Dask application package training
+  s:url: https://eoap.github.io/dask-app-package/
+s:publisher: *id001

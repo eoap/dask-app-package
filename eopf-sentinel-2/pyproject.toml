@@ -1,12 +1,12 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.27.0", "editables==0.5"]
 build-backend = "hatchling.build"
 
 [project]
 name = "eopf-sentinel-2"
 dynamic = ["version"]
 description = 'EOPF Sentinel-2'
-requires-python = ">=3.8"
+requires-python = ">=3.12,<3.13"
 license = "MIT"
 keywords = ["Dask", "Calrissian"]
 
@@ -53,10 +53,10 @@ source_pkgs = ["src/eopf_sentinel_2"]
 eopf-sentinel-2-proc = "eopf_sentinel_2.app:start"
 
 [tool.hatch.envs.dev]
-python = "3.10"
+python = "3.12"
 
 [tool.hatch.envs.prod]
-python = "3.10"
+python = "3.12"
 path = "/app/envs/eopf_sentinel_2"
 
 

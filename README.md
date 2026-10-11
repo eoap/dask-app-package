@@ -195,3 +195,33 @@ with the original one-step workflow's inputs, defaults and outputs. This keeps
 the packages standalone and avoids the pinned upstream Calrissian nested custom
 requirement validation failure. Dask Gateway remains a mandatory requirement;
 the requirement is not downgraded to an optional hint.
+
+## 2.0.0 release preparation
+
+This feature uses Python 3.12 for the notebook client, processing commands,
+scheduler and workers, with Dask/Distributed/Gateway 2025.4.0. Build from the
+repository root with `docker build -t dask-worker:local .`; the image contains
+both course applications and their matching scheduler/worker commands. Runtime,
+notebook, build, validation and metadata environments have separate hash locks.
+The Calrissian validation lock pins the same upstream commit as PDE.
+
+The application packages are standalone CWL v1.2 tools with mandatory
+`DaskGatewayRequirement`, embedded typed inputs and complete schema.org metadata.
+`python scripts/cwl-docs.py --validate` uses the pinned Calrissian extension schema;
+`scripts/check-metadata.py` validates the actual transpiler-mate metadata model
+in the separate metadata environment. The generic cwl2oci parser currently does
+not accept this mandatory custom requirement, so it is not used to claim OCI
+conversion support. No CWL packing is used.
+
+CI runs two real-data notebook lessons and the Calrissian two-worker lifecycle
+case on Kubernetes. Cloudless acceptance uses two Sentinel-2 acquisitions at
+100 m resolution. EOPF acceptance uses an explicit 1024-pixel centred window
+from the original real Zarr acquisition (`DASK_LAB_EOPF_WINDOW=1024`), records
+that window and derives STAC geometry from the resulting GeoTIFF. Omit the
+window to process the full acquisition. Both paths check readable assets,
+scientific values and geographic metadata; generated pixels are not substituted.
+
+Only accepted builds publish candidate GHCR image tags; the same dual-application
+image is available under the existing cloudless and EOPF package names. Stable
+publication requires an explicit main-branch workflow dispatch after acceptance.
+It publishes immutable image references, standalone CWL files, locks and checksums.

@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: calrissian-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: calrissian
+rules:
+- apiGroups: ['']
+  resources: [pods, pods/log, pods/status, events, configmaps, persistentvolumeclaims]
+  verbs: [get, list, watch, create, delete, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: calrissian
+subjects:
+- kind: ServiceAccount
+  name: calrissian-sa
+roleRef:
+  kind: Role
+  name: calrissian
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: calrissian-claim
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: acceptance-controller
+spec:
+  serviceAccountName: calrissian-sa
+  containers:
+  - name: controller
+    image: dask-acceptance:local
+    imagePullPolicy: Never
+    command: [sleep, infinity]
+    env:
+    - name: DASK_GATEWAY_ADDRESS
+      value: http://traefik-dask-gateway:80
+    - name: DASK_GATEWAY__ADDRESS
+      value: http://traefik-dask-gateway:80
+    - name: DASK_GATEWAY_URL
+      value: http://traefik-dask-gateway:80
+    - name: DASK_IMAGE
+      value: dask-worker:local
+    - name: DASK_MAX_WORKERS
+      value: '2'
+    - name: DASK_LAB_MAX_ITEMS
+      value: '2'
+    - name: DASK_LAB_EOPF_WINDOW
+      value: '1024'
+    volumeMounts:
+    - name: calrissian
+      mountPath: /calrissian
+  volumes:
+  - name: calrissian
+    persistentVolumeClaim:
+      claimName: calrissian-claim

@@ -1,0 +1,10 @@
+ARG WORKER_IMAGE
+FROM ${WORKER_IMAGE}
+COPY requirements-notebooks.txt requirements-build.txt /tmp/
+RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements-notebooks.txt -r /tmp/requirements-build.txt
+COPY requirements-validation.txt /tmp/
+RUN python -m venv /opt/calrissian-venv && /opt/calrissian-venv/bin/pip install --no-cache-dir --require-hashes -r /tmp/requirements-validation.txt
+COPY . /workspace/dask-app-package
+RUN python -m ipykernel install --name dask_env && mkdir -p /root/.config/dask
+WORKDIR /workspace/dask-app-package
+ENTRYPOINT []

@@ -1,4 +1,3 @@
-# Standalone application tool; preserves the original one-step workflow interface.
 class: CommandLineTool
 id: main
 requirements:
@@ -14,6 +13,10 @@ requirements:
     clusterMaxMemory: 48G
   SchemaDefRequirement:
     types:
+    - name: '#CRS'
+      type: enum
+      symbols:
+      - '4326'
     - name: '#URI'
       type: record
       fields:
@@ -32,7 +35,7 @@ requirements:
           type: array
           items: double
       - name: crs
-        type: string
+        type: '#CRS'
     - name: '#SpectralBand'
       type: enum
       symbols:
@@ -83,11 +86,13 @@ inputs:
       - 47.54687159892238
       - -121.96128845214844
       - 47.745787772920934
-      crs: CRS84
+      crs: '4326'
   bands:
     type:
       type: array
       items: '#SpectralBand'
+      inputBinding:
+        prefix: --bands
     label: bands
     doc: bands.
     default:
@@ -109,6 +114,7 @@ inputs:
       prefix: --resolution
     label: resolution
     doc: resolution.
+    default: 100
   max_items:
     type: int
     inputBinding:
@@ -138,10 +144,24 @@ cwlVersion: v1.2
 $namespaces:
   s: https://schema.org/
   calrissian: https://calrissian-cwl.github.io/schema#
-s:softwareVersion: 1.4.1
+s:softwareVersion: 2.0.0
 s:codeRepository: https://github.com/eoap/dask-app-package
 s:license: https://spdx.org/licenses/MIT.html
 s:author:
-- class: s:Person
+- '@type': s:Person
   s:name: Leonardo Mizzoni
+  s:givenName: Leonardo
+  s:familyName: Mizzoni
   s:email: leonardo.mizzoni@terradue.com
+  s:affiliation: &id001
+    '@type': s:Organization
+    s:name: Terradue
+    s:url: https://www.terradue.com
+s:name: cloudless-mosaic
+s:description: Dask application package cloudless-mosaic
+s:dateCreated: '2025-01-01'
+s:softwareHelp:
+  '@type': s:CreativeWork
+  s:name: Dask application package training
+  s:url: https://eoap.github.io/dask-app-package/
+s:publisher: *id001

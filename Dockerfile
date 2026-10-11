@@ -1,0 +1,8 @@
+FROM docker.io/library/python:3.12.11-bookworm@sha256:bea386df48d7ee07eed0a1f3e6f9d5c0292c228b8d8ed2ea738b7a57b29c4470
+COPY requirements-runtime.txt requirements-build.txt /tmp/
+RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements-runtime.txt -r /tmp/requirements-build.txt
+COPY cloudless-mosaic /app/cloudless-mosaic
+COPY eopf-sentinel-2 /app/eopf-sentinel-2
+RUN pip install --no-cache-dir --no-deps --no-build-isolation /app/cloudless-mosaic /app/eopf-sentinel-2 && pip check && dask-scheduler --version && dask-worker --version
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT []
