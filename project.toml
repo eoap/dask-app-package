@@ -1,6 +1,6 @@
 [project]
 name = "cloudless-mosaic"
-version = "1.0.0"
+version = "2.0.0"
 
 [build]
 engine = "cluster"
@@ -13,11 +13,11 @@ registry = "ghcr.io/eoap"
 secret = "kaniko-secret"
 
 [tools.cloudless-mosaic]
-context = "cloudless-mosaic"
+context = "."
 path = "cwl-workflows/cloudless-mosaic.cwl#main"
 
 [tools.eopf-sentinel-2]
-context = "eopf-sentinel-2"
+context = "."
 path = "cwl-workflows/eopf-sentinel-2.cwl#main"
 
 [[workflows]]
@@ -31,7 +31,7 @@ description = "Test case 1 for cloudless-mosaic."
 resolution = 100 
 start-date = { value = "2018-01-01" }
 end-date = { value = "2020-12-31" }
-aoi = { bbox = [-122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934], crs = "CRS84" }
+aoi = { bbox = [-122.27508544921875,47.54687159892238,-121.96128845214844,47.745787772920934], crs = "4326" }
 collection = "sentinel-2-l2a"
 bands = ["nir", "red", "green"]
 max_cloud_cover = 25

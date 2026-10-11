@@ -1,59 +1,15 @@
-# CWL Workflow for eopf-sentinel-2 module
-```yaml
-cwlVersion: v1.2
-$namespaces:
-  s: https://schema.org/
-  calrissian: https://calrissian-cwl.github.io/schema#
-s:softwareVersion: 1.4.1
-schemas:
-  - http://schema.org/version/9.0/schemaorg-current-http.rdf
-$graph:
-  - class: Workflow
-    id: main
-    requirements:
-      InlineJavascriptRequirement: {}
-      NetworkAccess:
-        networkAccess: true
-      ScatterFeatureRequirement: {}
-    inputs:
-      item-url:
-        type: string
-    outputs:
-      stac-catalog:
-        outputSource: eopf-sentinel-2/stac-catalog
-        type: Directory
-    steps:
-      eopf-sentinel-2:
-        in:
-          item-url: item-url
-        out:
-          - stac-catalog
-        run: "#eopf-sentinel-2"
-  - class: CommandLineTool
-    id: eopf-sentinel-2
-    requirements:
-      DockerRequirement:
-        dockerPull: ttl.sh/eopf-sentinel-2:2h@sha256:5372483914e76a3c1fb0c4f36e382be321906276ef8b4a23c1b96f549d360075
-      EnvVarRequirement:
-        envDef: {}
-      calrissian:DaskGatewayRequirement:
-        workerCores: 1
-        workerCoresLimit: 1
-        workerMemory: "4G"
-        clusterMaxCore: 5
-        clusterMaxMemory: "20G"
-    baseCommand: ["eopf-sentinel-2-proc"]
-    arguments: []
-    inputs:
-      item-url:
-        type: string
-        inputBinding:
-          position: 1
-          prefix: "--item-url"
-    outputs:
-      stac-catalog:
-        type: Directory
-        outputBinding:
-          glob: .
+# eopf-sentinel-2 application package
 
+The authoritative standalone CWL v1.2 document is
+[`cwl-workflows/eopf-sentinel-2.cwl`](https://github.com/eoap/dask-app-package/blob/feature/pde-typed-cwl/cwl-workflows/eopf-sentinel-2.cwl).
+It embeds its input types, metadata and mandatory Dask Gateway requirement.
+
+Generate an input/output and type reference from the checked-out document:
+
+```bash
+python scripts/cwl-docs.py --output /tmp/dask-cwl-docs
 ```
+
+For typed real-data execution, use the corresponding job in `acceptance/jobs/`
+and run `scripts/run-cwl-acceptance.py` in the Kubernetes acceptance controller.
+The release artifacts contain image digests; source defaults target 2.0.0.
