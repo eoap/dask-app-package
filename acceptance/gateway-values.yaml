@@ -1,5 +1,9 @@
 gateway:
   backend:
+    scheduler:
+      cores:
+        request: 0.25
+        limit: 1
     image:
       name: dask-worker
       tag: local

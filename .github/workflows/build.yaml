@@ -54,7 +54,7 @@ jobs:
           kubectl apply -n dask-acceptance -f acceptance/controller.yaml
           kubectl wait -n dask-acceptance --for=condition=Ready pod/acceptance-controller --timeout=10m
       - name: Calrissian distributed tasks and teardown
-        run: kubectl exec -n dask-acceptance acceptance-controller -- bash scripts/run-gateway-acceptance.sh
+        run: timeout 480 kubectl exec -n dask-acceptance acceptance-controller -- bash scripts/run-gateway-acceptance.sh
       - name: Real cloudless and EOPF notebook acceptance
         run: |
           kubectl exec -n dask-acceptance acceptance-controller -- python scripts/run-practice-labs.py --workspace /workspace/dask-app-package --notebooks-dir . --lab cloudless-mosaic/notebook.ipynb --python-kernel dask_env --output /calrissian/notebooks
@@ -62,7 +62,7 @@ jobs:
           kubectl exec -n dask-acceptance acceptance-controller -- python scripts/check-results.py
           kubectl exec -n dask-acceptance acceptance-controller -- python -c 'from dask_gateway import Gateway; assert not Gateway().list_clusters(), "Clusters leaked after notebooks"'
       - name: Typed CWL scientific execution
-        run: kubectl exec -n dask-acceptance acceptance-controller -- python scripts/run-cwl-acceptance.py
+        run: timeout 1200 kubectl exec -n dask-acceptance acceptance-controller -- python scripts/run-cwl-acceptance.py
       - name: Publish accepted candidate or stable artifacts
         if: github.event_name != 'pull_request'
         env:
@@ -103,6 +103,9 @@ jobs:
         if: always()
         run: |
           mkdir -p evidence
+          kubectl get nodes -o yaml > evidence/nodes.yaml 2>&1 || true
+          kubectl get events -n dask-acceptance --sort-by=.lastTimestamp > evidence/events.txt 2>&1 || true
+          kubectl describe pods -n dask-acceptance > evidence/pod-details.txt 2>&1 || true
           kubectl get pods -n dask-acceptance -o wide > evidence/pods.txt 2>&1 || true
           kubectl get daskclusters -n dask-acceptance -o yaml > evidence/clusters.yaml 2>&1 || true
           kubectl cp -n dask-acceptance acceptance-controller:/calrissian evidence/calrissian || true
