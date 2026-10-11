@@ -1,0 +1,10 @@
+start-date: {value: '2020-10-01'}
+end-date: {value: '2020-12-31'}
+aoi:
+  bbox: [-122.27508544921875, 47.54687159892238, -121.96128845214844, 47.745787772920934]
+  crs: '4326'
+bands: [nir, red, green]
+collection: sentinel-2-l2a
+resolution: 100
+max_items: 2
+max_cloud_cover: 25

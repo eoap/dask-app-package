@@ -58,6 +58,8 @@ jobs:
           kubectl exec -n dask-acceptance acceptance-controller -- python scripts/run-practice-labs.py --workspace /workspace/dask-app-package --notebooks-dir . --lab eopf-sentinel-2/notebook.ipynb --python-kernel dask_env --output /calrissian/notebooks
           kubectl exec -n dask-acceptance acceptance-controller -- python scripts/check-results.py
           kubectl exec -n dask-acceptance acceptance-controller -- python -c 'from dask_gateway import Gateway; assert not Gateway().list_clusters(), "Clusters leaked after notebooks"'
+      - name: Typed CWL scientific execution
+        run: kubectl exec -n dask-acceptance acceptance-controller -- python scripts/run-cwl-acceptance.py
       - name: Publish accepted candidate or stable artifacts
         if: github.event_name != 'pull_request'
         env:

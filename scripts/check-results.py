@@ -1,14 +1,18 @@
 """Check real GeoTIFF assets, scientific values, and catalog geometry."""
 from pathlib import Path
+import argparse
 import numpy as np
 import pystac
 import rasterio
 from rasterio.warp import transform_bounds
 root=Path(__file__).resolve().parents[1]
-for lesson in ['cloudless-mosaic','eopf-sentinel-2']:
-    catalog=pystac.Catalog.from_file(str(root/lesson/'catalog.json'))
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--catalog', type=Path, action='append')
+args=parser.parse_args()
+for source in args.catalog or [root/'cloudless-mosaic/catalog.json', root/'eopf-sentinel-2/catalog.json']:
+    catalog=pystac.Catalog.from_file(str(source))
     items=list(catalog.get_all_items())
-    assert items, lesson
+    assert items, source
     for item in items:
         assert item.bbox and item.assets
         for name,asset in item.assets.items():

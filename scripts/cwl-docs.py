@@ -51,7 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=Path, default=Path('/tmp/stac-cwl-docs'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    for path in sorted(root.rglob('*.cwl')):
+    for path in sorted((root / 'cwl-workflows').glob('*.cwl')):
         if path.name.startswith('.'): continue
         markdown = render(path)
         if args.validate:
