@@ -8,9 +8,22 @@ kind: Role
 metadata:
   name: calrissian
 rules:
-- apiGroups: ['']
-  resources: [pods, pods/log, pods/status, events, configmaps, persistentvolumeclaims]
-  verbs: [get, list, watch, create, delete, patch]
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - pods/log
+  - pods/status
+  - events
+  - configmaps
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+  - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -29,7 +42,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: calrissian-claim
 spec:
-  accessModes: [ReadWriteOnce]
+  accessModes:
+  - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
@@ -44,7 +58,9 @@ spec:
   - name: controller
     image: dask-acceptance:local
     imagePullPolicy: Never
-    command: [sleep, infinity]
+    command:
+    - sleep
+    - infinity
     env:
     - name: CALRISSIAN_POD_NAME
       valueFrom:
@@ -73,3 +89,7 @@ spec:
   - name: calrissian
     persistentVolumeClaim:
       claimName: calrissian-claim
+  securityContext:
+    runAsUser: 2000
+    runAsGroup: 2000
+    fsGroup: 2000

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling==1.27.0", "editables==0.5"]
+requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [project]
@@ -40,7 +40,12 @@ dependencies = [
   "bokeh==3.7.3",
   "xarray[complete]",
 ]
+readme = "README.md"
 
+[project.urls]
+Documentation = "https://eoap.github.io/dask-app-package/"
+Source = "https://github.com/eoap/dask-app-package"
+Issues = "https://github.com/eoap/dask-app-package/issues"
 [tool.hatch.metadata]
 allow-direct-references = true
 
@@ -49,14 +54,50 @@ path = "src/eopf_sentinel_2/__about__.py"
 
 source_pkgs = ["src/eopf_sentinel_2"]
 
+[tool.hatch.build]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eopf_sentinel_2"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/README.md", "/pyproject.toml"]
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "C4", "SIM", "C90"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.mypy]
+ignore_missing_imports = true
+strict = true
+mypy_path = "../typing"
+
 [project.scripts]
 eopf-sentinel-2-proc = "eopf_sentinel_2.app:start"
 
 [tool.hatch.envs.dev]
-python = "3.12"
+skip-install = true
+installer = "uv"
+post-install-commands = ["cd .. && uv pip install --require-hashes -r requirements/development.txt", "cd .. && uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2"]
+
+[tool.hatch.envs.dev.scripts]
+check = ["format-check", "lint-check", "typecheck", "security"]
+format-check = "cd .. && ruff format --check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
+lint-check = "cd .. && ruff check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
+typecheck = "cd .. && mypy cloudless-mosaic/src eopf-sentinel-2/src scripts"
+security = "cd .. && bandit -r cloudless-mosaic/src eopf-sentinel-2/src scripts -ll"
 
 [tool.hatch.envs.prod]
 python = "3.12"
 path = "/app/envs/eopf_sentinel_2"
 
 
+[tool.hatch.envs.test]
+template = "dev"
+
+[tool.hatch.envs.test.scripts]
+test = "cd .. && pytest -q {args}"

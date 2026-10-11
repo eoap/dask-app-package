@@ -1,36 +1,57 @@
 from __future__ import annotations
+
 import os
-import sys
-import click
 import traceback
+from collections.abc import Callable, Mapping
 from shutil import move
-import dask
-import pystac
-import xarray as xr
-import rioxarray  # Registers the rio accessor in clean clients and workers.
+
+import click
 import numpy as np
-from loguru import logger
-from dask_gateway import Gateway
-from rio_color.operations import parse_operations
+import pystac
 import rasterio
 import rio_stac
+import xarray as xr
+from dask_gateway import Gateway
+from loguru import logger
+from numpy.typing import NDArray
 from rasterio.enums import Resampling
+from rio_color.operations import parse_operations
+from rioxarray.raster_array import RasterArray
 
 
-def apply_rio_color(channel, c_red, c_green, c_blue, ops):
-    arr = np.stack([
-        np.clip(np.nan_to_num(c_red, nan=0), 0, 1),
-        np.clip(np.nan_to_num(c_green, nan=0), 0, 1),
-        np.clip(np.nan_to_num(c_blue, nan=0), 0, 1)
-    ], axis=0)
+def apply_rio_color(
+    channel: int,
+    c_red: NDArray[np.float32],
+    c_green: NDArray[np.float32],
+    c_blue: NDArray[np.float32],
+    ops: str,
+) -> NDArray[np.uint8]:
+    arr = np.stack(
+        [
+            np.clip(np.nan_to_num(c_red, nan=0), 0, 1),
+            np.clip(np.nan_to_num(c_green, nan=0), 0, 1),
+            np.clip(np.nan_to_num(c_blue, nan=0), 0, 1),
+        ],
+        axis=0,
+    )
     for func in parse_operations(ops):
         arr = func(arr)
     return (arr[channel, :, :] * 255).astype(np.uint8)
 
 
-def make_channel_func(channel):
-    def func(c_red, c_green, c_blue, ops):
+def make_channel_func(
+    channel: int,
+) -> Callable[
+    [NDArray[np.float32], NDArray[np.float32], NDArray[np.float32], str], NDArray[np.uint8]
+]:
+    def func(
+        c_red: NDArray[np.float32],
+        c_green: NDArray[np.float32],
+        c_blue: NDArray[np.float32],
+        ops: str,
+    ) -> NDArray[np.uint8]:
         return apply_rio_color(channel, c_red, c_green, c_blue, ops)
+
     return func
 
 
@@ -39,47 +60,54 @@ apply_rio_color_green = make_channel_func(1)
 apply_rio_color_blue = make_channel_func(2)
 
 
-def normalized_difference(band1, band2):
+def normalized_difference(
+    band1: NDArray[np.float32], band2: NDArray[np.float32]
+) -> NDArray[np.float32]:
     return (band1 - band2) / (band1 + band2)
 
 
-def compute_index(band1, band2, epsg) -> xr.DataArray:
-    index = xr.apply_ufunc(
+def compute_index(band1: xr.DataArray, band2: xr.DataArray, epsg: int) -> xr.DataArray:
+    index: xr.DataArray = xr.apply_ufunc(
         normalized_difference,
         band1,
         band2,
         output_dtypes=[np.float32],
         dask="parallelized",
     )
-    return index.rio.write_crs(epsg, inplace=True)
+    RasterArray(index).write_crs(epsg, inplace=True)
+    return index
 
 
-def apply_color_correction(bands: tuple[xr.DataArray, xr.DataArray, xr.DataArray], ops: str, epsg: int) -> xr.DataArray:
+def apply_color_correction(
+    bands: tuple[xr.DataArray, xr.DataArray, xr.DataArray], ops: str, epsg: int
+) -> xr.DataArray:
     red, green, blue = bands
     corrected = [
-        xr.apply_ufunc(f, red, green, blue, kwargs={"ops": ops}, dask="parallelized", output_dtypes=[np.uint8])
+        xr.apply_ufunc(
+            f, red, green, blue, kwargs={"ops": ops}, dask="parallelized", output_dtypes=[np.uint8]
+        )
         for f in (apply_rio_color_red, apply_rio_color_green, apply_rio_color_blue)
     ]
-    rgb = xr.concat(corrected, dim='band')
+    rgb: xr.DataArray = xr.concat(corrected, dim="band")
     rgb.rio.write_crs(epsg, inplace=True)
-    rgb.rio.set_spatial_dims('x', 'y', inplace=True)
+    rgb.rio.set_spatial_dims("x", "y", inplace=True)
     return rgb
 
 
-def build_overviews(path: str, levels: list[int] = [2, 4, 8, 16]):
+def build_overviews(path: str, levels: tuple[int, ...] = (2, 4, 8, 16)) -> None:
     with rasterio.open(path, "r+") as dst:
         dst.build_overviews(levels, Resampling.average)
-        dst.update_tags(ns='rio_overview', resampling='average')
+        dst.update_tags(ns="rio_overview", resampling="average")
 
 
-def projection_epsg(properties):
+def projection_epsg(properties: Mapping[str, object]) -> int:
     """Read current proj:code or legacy proj:epsg metadata without assuming a CRS."""
     code = properties.get("proj:code")
     if code is None and properties.get("proj:epsg") is not None:
         code = f"EPSG:{properties['proj:epsg']}"
     if code is None:
         raise ValueError("EOPF product metadata does not define an EPSG projection")
-    epsg = rasterio.crs.CRS.from_user_input(code).to_epsg()
+    epsg: int | None = rasterio.crs.CRS.from_user_input(code).to_epsg()
     if epsg is None:
         raise ValueError(f"EOPF processing requires an EPSG projection, got {code}")
     return epsg
@@ -87,7 +115,7 @@ def projection_epsg(properties):
 
 def main(item_url: str, window_size: int | None = None) -> None:
     logger.info("Processing started...")
-    item = pystac.read_file(item_url)
+    item = pystac.Item.from_file(item_url)
     logger.info(f"Processing item {item.id}")
 
     remote_product_path = item.assets["product"].href
@@ -106,7 +134,7 @@ def main(item_url: str, window_size: int | None = None) -> None:
             size = reflectance.sizes[dimension]
             start = max(0, (size - window_size) // 2)
             selections[dimension] = slice(start, min(size, start + window_size))
-        reflectance = reflectance.isel(**selections)
+        reflectance = reflectance.isel(selections)
         logger.info("Processing real acquisition window: {}", dict(reflectance.sizes))
     red = reflectance["b04"].chunk({"x": 512, "y": 512}).persist()
     green = reflectance["b03"].chunk({"x": 512, "y": 512}).persist()
@@ -138,44 +166,24 @@ def main(item_url: str, window_size: int | None = None) -> None:
     logger.info("Compute GeoTIFFs")
     ndvi_tif = "ndvi.tif"
     ndwi_tif = "ndwi.tif"
-    ndmir_tif = "ndmir.tif"
-    nbdr_tif = "nbdr.tif"
-    ndwi2_tif = "ndwi2.tif"
-    mndwi_tif = "mndwi.tif"
-    ndbi_tif = "ndbi.tif"
     rgb_tif = "overview-rgb.tif"
-    vea_tif = "overview-vea.tif"
     civ_tif = "overview-civ.tif"
-    law_tif = "overview-law.tif"
-    sir_tif = "overview-sir.tif"
-    fcu_tif = "overview-fcu.tif"
-    atp_tif = "overview-atp.tif"
-
-    tasks = [
-        ndvi.compute().astype("float32").rio.to_raster(ndvi_tif, driver="GTiff", compress="LZW"),
-        ndwi.compute().astype("float32").rio.to_raster(ndwi_tif, driver="GTiff", compress="LZW"),
-        # ndmir.compute().astype("float32").rio.to_raster(ndmir_tif, driver="GTiff", compress="LZW"),
-        # nbdr.compute().astype("float32").rio.to_raster(nbdr_tif, driver="GTiff", compress="LZW"),
-        # ndwi2.compute().astype("float32").rio.to_raster(ndwi2_tif, driver="GTiff", compress="LZW"),
-        # mndwi.compute().astype("float32").rio.to_raster(mndwi_tif, driver="GTiff", compress="LZW"),
-        # ndbi.compute().astype("float32").rio.to_raster(ndbi_tif, driver="GTiff", compress="LZW"),
-        rgb.compute().rio.to_raster(rgb_tif, driver="GTiff", compress="LZW"),
-        # vea.compute().rio.to_raster(vea_tif, driver="GTiff", compress="LZW"),
-        civ.compute().rio.to_raster(civ_tif, driver="GTiff", compress="LZW"),
-        # law.compute().rio.to_raster(law_tif, driver="GTiff", compress="LZW"),
-        # sir.compute().rio.to_raster(sir_tif, driver="GTiff", compress="LZW"),
-        # fcu.compute().rio.to_raster(fcu_tif, driver="GTiff", compress="LZW"),
-        # atp.compute().rio.to_raster(atp_tif, driver="GTiff", compress="LZW"),
-    ]
-
-
-    dask.compute(*tasks)
+    for product, target in (
+        (ndvi.astype("float32"), ndvi_tif),
+        (ndwi.astype("float32"), ndwi_tif),
+        (rgb, rgb_tif),
+        (civ, civ_tif),
+    ):
+        product.compute().rio.to_raster(target, driver="GTiff", compress="LZW")
 
     # STAC output
     logger.info("Create STAC Item")
     out_item = rio_stac.stac.create_stac_item(
-        source=ndvi_tif, id=item.id + "-processed", input_datetime=item.datetime,
-        with_proj=True, with_raster=False,
+        source=ndvi_tif,
+        id=item.id + "-processed",
+        input_datetime=item.datetime,
+        with_proj=True,
+        with_raster=False,
     )
     out_item.assets.clear()
     out_item.properties["processing:source_item"] = item.get_self_href()
@@ -225,8 +233,13 @@ def main(item_url: str, window_size: int | None = None) -> None:
 
 @click.command()
 @click.option("--item-url", "item_url", required=True, help="STAC Item URL")
-@click.option("--window-size", type=click.IntRange(min=1), default=None, help="Optional centred real-product window in pixels; default processes the full product.")
-def start(item_url, window_size):
+@click.option(
+    "--window-size",
+    type=click.IntRange(min=1),
+    default=None,
+    help="Optional centred real-product window in pixels; default processes the full product.",
+)
+def start(item_url: str, window_size: int | None) -> None:
     gateway = Gateway()
     cluster_name = os.environ.get("DASK_CLUSTER")
     logger.info(f"Connecting to the Dask cluster: {cluster_name}")

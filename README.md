@@ -46,7 +46,7 @@ runtime lock; do not fall back to an older course image.
 
 ## PDE acceptance and typed CWL
 
-The feature branch uses standalone CWL v1.2 documents with embedded URI, Date,
+The feature branch uses standalone CWL v1.2 documents with published URI and Date schema imports and module-defined
 BBox and SpectralBand schemas and documented metadata. Jobs in `project.toml`
 use records for URI/date/bounding-box inputs. Use upstream Calrissian's
 `clusterMaxCores` spelling and Dask Gateway 2025.4.0 with the course images.
@@ -93,3 +93,15 @@ Only accepted builds publish candidate GHCR image tags; the same dual-applicatio
 image is available under the existing cloudless and EOPF package names. Stable
 publication requires an explicit main-branch workflow dispatch after acceptance.
 It publishes immutable image references, standalone CWL files, locks and checksums.
+
+## Packaging and container model migration
+
+The root and both processing packages use Hatchling >=1.27,<2 and Python
+3.12. Hash-locked Hatch development/test environments run formatting, lint,
+strict typing, security, and pytest checks. Processing images build project and
+native dependency wheels on digest-pinned Rocky Linux 10.1-minimal, then install
+the verified wheels into `/app/venv` as UID/GID 2000 and remove pip.
+`Dockerfile.acceptance` is a development harness and installs notebook tools
+separately; it is not a production processing image. These changes require new
+scientific/cluster acceptance before replacing previously accepted candidate
+images. Build all processing Dockerfiles with the repository root as context.

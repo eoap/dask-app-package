@@ -29,9 +29,13 @@ jobs:
       - name: Locked contracts, regression tests and docs
         run: |
           uv venv .venv
-          uv pip sync --python .venv/bin/python --require-hashes requirements-notebooks.txt requirements-build.txt
+          uv pip sync --python .venv/bin/python --require-hashes requirements/development.txt
           uv pip install --python .venv/bin/python --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2
-          .venv/bin/python -m unittest discover -s tests
+          .venv/bin/ruff format --check cloudless-mosaic/src eopf-sentinel-2/src scripts tests
+          .venv/bin/ruff check cloudless-mosaic/src eopf-sentinel-2/src scripts tests
+          .venv/bin/mypy cloudless-mosaic/src eopf-sentinel-2/src scripts
+          .venv/bin/bandit -r cloudless-mosaic/src eopf-sentinel-2/src scripts -ll
+          .venv/bin/python -m pytest -q tests
           .venv/bin/mkdocs build --strict
           uv venv .validation-venv
           uv pip sync --python .validation-venv/bin/python --require-hashes requirements-validation.txt

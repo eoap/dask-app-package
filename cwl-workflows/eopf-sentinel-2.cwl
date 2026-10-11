@@ -17,16 +17,7 @@ requirements:
       type: enum
       symbols:
       - '4326'
-    - name: '#URI'
-      type: record
-      fields:
-      - name: value
-        type: string
-    - name: '#Date'
-      type: record
-      fields:
-      - name: value
-        type: string
+    - $import: https://raw.githubusercontent.com/eoap/schemas/main/string_format.yaml
     - name: '#BBox'
       type: record
       fields:
@@ -56,7 +47,7 @@ baseCommand:
 arguments: []
 inputs:
   item-url:
-    type: '#URI'
+    type: https://raw.githubusercontent.com/eoap/schemas/main/string_format.yaml#URI
     inputBinding:
       position: 1
       prefix: --item-url

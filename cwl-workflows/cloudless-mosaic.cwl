@@ -17,16 +17,7 @@ requirements:
       type: enum
       symbols:
       - '4326'
-    - name: '#URI'
-      type: record
-      fields:
-      - name: value
-        type: string
-    - name: '#Date'
-      type: record
-      fields:
-      - name: value
-        type: string
+    - $import: https://raw.githubusercontent.com/eoap/schemas/main/string_format.yaml
     - name: '#BBox'
       type: record
       fields:
@@ -56,7 +47,7 @@ baseCommand:
 arguments: []
 inputs:
   start-date:
-    type: '#Date'
+    type: https://raw.githubusercontent.com/eoap/schemas/main/string_format.yaml#Date
     inputBinding:
       position: 1
       prefix: --start-date
@@ -66,7 +57,7 @@ inputs:
     default:
       value: '2020-10-01'
   end-date:
-    type: '#Date'
+    type: https://raw.githubusercontent.com/eoap/schemas/main/string_format.yaml#Date
     inputBinding:
       position: 1
       prefix: --end-date

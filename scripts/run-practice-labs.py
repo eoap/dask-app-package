@@ -2,41 +2,62 @@
 
 import argparse
 import os
-from datetime import datetime, timezone
-from pathlib import Path
 import sys
+from datetime import UTC, datetime
+from pathlib import Path
 
 
-def main():
+def select_notebooks(root: Path, pattern: str) -> list[Path]:
+    matches: set[Path] = set()
+    for match in root.glob(pattern):
+        if match.is_dir():
+            matches.update(match.rglob("*.ipynb"))
+        elif match.suffix == ".ipynb":
+            matches.add(match)
+    return sorted(p for p in matches if ".ipynb_checkpoints" not in p.parts)
+
+
+def notebook_directory(workspace: Path, notebooks_dir: str, lab: str) -> Path:
+    """Validate that notebook selection remains inside an existing workspace."""
+    if Path(notebooks_dir).is_absolute() or ".." in Path(notebooks_dir).parts:
+        raise ValueError("--notebooks-dir must stay inside the workspace")
+    if Path(lab).is_absolute() or ".." in Path(lab).parts:
+        raise ValueError("--lab must stay inside the notebook directory")
+    root = workspace / notebooks_dir
+    if not root.is_dir():
+        raise ValueError(f"Notebook directory not found: {root}")
+    return root
+
+
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--lab", default="*", help="Chapter, notebook, or glob under the notebook directory")
+    parser.add_argument(
+        "--lab", default="*", help="Chapter, notebook, or glob under the notebook directory"
+    )
     parser.add_argument("--timeout", type=int, default=1800, help="Seconds per cell")
     parser.add_argument("--list", choices=("true", "false"), default="false")
-    parser.add_argument("--python-kernel", default="mastering_env", help="Kernel for Python notebooks")
+    parser.add_argument(
+        "--python-kernel", default="mastering_env", help="Kernel for Python notebooks"
+    )
     parser.add_argument("--workspace", type=Path, default=Path("/workspace/mastering-app-package"))
-    parser.add_argument("--notebooks-dir", default="practice-labs", help="Notebook directory relative to the workspace")
+    parser.add_argument(
+        "--notebooks-dir",
+        default="practice-labs",
+        help="Notebook directory relative to the workspace",
+    )
     parser.add_argument("--output", type=Path, default=Path("/workspace/lab-results"))
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
-    if Path(args.notebooks_dir).is_absolute() or ".." in Path(args.notebooks_dir).parts:
-        parser.error("--notebooks-dir must stay inside the workspace")
-    root = args.workspace / args.notebooks_dir
-    if not root.is_dir():
-        parser.error(f"Notebook directory not found: {root}")
-    if Path(args.lab).is_absolute() or ".." in Path(args.lab).parts:
-        parser.error("--lab must stay inside the notebook directory")
-    notebooks = set()
-    for match in root.glob(args.lab):
-        if match.is_dir():
-            notebooks.update(match.rglob("*.ipynb"))
-        elif match.suffix == ".ipynb":
-            notebooks.add(match)
-    notebooks = sorted(p for p in notebooks if ".ipynb_checkpoints" not in p.parts)
+    try:
+        root = notebook_directory(args.workspace, args.notebooks_dir, args.lab)
+    except ValueError as error:
+        parser.error(str(error))
+    notebooks = select_notebooks(root, args.lab)
     if not notebooks:
         parser.error(f"No notebooks match {args.lab!r}")
-    for notebook in notebooks:
-        print(notebook.relative_to(root), flush=True)
+    for notebook_path in notebooks:
+        print(notebook_path.relative_to(root), flush=True)
     if args.list == "true":
         return 0
 
@@ -46,7 +67,7 @@ def main():
     # Bash kernels recognize a fixed prompt; venv activation must preserve it.
     os.environ["VIRTUAL_ENV_DISABLE_PROMPT"] = "1"
 
-    output = args.output / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    output = args.output / datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     print(f"Executed notebooks: {output}", flush=True)
     for index, source in enumerate(notebooks, 1):
         relative = source.relative_to(root)
