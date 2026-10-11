@@ -6,5 +6,6 @@ RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements-runtime.txt
 COPY cloudless-mosaic /app/cloudless-mosaic
 COPY eopf-sentinel-2 /app/eopf-sentinel-2
 RUN pip install --no-cache-dir --no-deps --no-build-isolation /app/cloudless-mosaic /app/eopf-sentinel-2 && pip check && dask-scheduler --version && dask-worker --version
+RUN useradd --uid 1001 --create-home --shell /bin/bash eoap
 ENV PYTHONUNBUFFERED=1
 ENTRYPOINT []
