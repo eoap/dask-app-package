@@ -56,6 +56,8 @@ spec:
       value: dask-worker:local
     - name: DASK_MAX_WORKERS
       value: '2'
+    - name: DASK_WORKER_MEMORY_GB
+      value: '1'
     - name: DASK_LAB_MAX_ITEMS
       value: '2'
     - name: DASK_LAB_EOPF_WINDOW
