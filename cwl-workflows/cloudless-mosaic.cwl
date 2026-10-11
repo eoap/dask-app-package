@@ -2,7 +2,7 @@ class: CommandLineTool
 id: main
 requirements:
   DockerRequirement:
-    dockerPull: ghcr.io/eoap/dask-app-package/cloudless-mosaic:1.1.0
+    dockerPull: ghcr.io/eoap/dask-app-package/cloudless-mosaic:2.0.0
   EnvVarRequirement:
     envDef: {}
   calrissian:DaskGatewayRequirement:

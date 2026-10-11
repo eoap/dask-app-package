@@ -24,7 +24,7 @@ outputs:
       glob: report.json
 requirements:
   DockerRequirement:
-    dockerPull: ghcr.io/eoap/dask-app-package/eopf-sentinel-2:1.1.0
+    dockerPull: ghcr.io/eoap/dask-app-package/eopf-sentinel-2:2.0.0
   InlineJavascriptRequirement: {}
   NetworkAccess:
     networkAccess: true

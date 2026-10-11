@@ -84,7 +84,8 @@ jobs:
             docker tag dask-worker:local "$image"
             docker push "$image"
             docker pull "$image"
-            docker inspect "$image" --format '{{index .RepoDigests 0}}' > "downloads/$app.image.txt"
+            digest=$(docker buildx imagetools inspect "$image" --format '{{.Manifest.Digest}}')
+            printf '%s@%s\n' "ghcr.io/eoap/dask-app-package/$app" "$digest" > "downloads/$app.image.txt"
           done
           .venv/bin/python scripts/select-images.py --cloudless "$(cat downloads/cloudless-mosaic.image.txt)" --eopf "$(cat downloads/eopf-sentinel-2.image.txt)"
           .validation-venv/bin/python scripts/cwl-docs.py --validate
