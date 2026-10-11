@@ -15,7 +15,6 @@ for lesson in ['cloudless-mosaic','eopf-sentinel-2']:
     requirement['clusterMaxCores']=2
     requirement['clusterMaxMemory']='2G'
     requirement['workerMemory']='1G'
-    requirement['workerCores']=0.5
     target=folder/'application.cwl';target.write_text(yaml.safe_dump(document,sort_keys=False))
     with (folder/'outputs.json').open('w') as outputs,(folder/'execution.log').open('w') as log:
         subprocess.run(['/opt/calrissian-venv/bin/calrissian','--dask-gateway-url',os.environ['DASK_GATEWAY_ADDRESS'],'--max-ram','4G','--max-cores','2','--pod-serviceaccount','calrissian-sa','--outdir',str(folder/'results'),'--tmp-outdir-prefix',str(folder/'tmp')+'/','--tool-logs-basepath',str(folder/'logs'),'--usage-report',str(folder/'usage.json'),str(target),str(root/'acceptance/jobs'/f'{lesson}.yaml')],stdout=outputs,stderr=log,check=True,env={**os.environ,'CWLTOOL_OPTIONS':''})
