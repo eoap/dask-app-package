@@ -4,13 +4,13 @@ FROM node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c
 FROM ${WORKER_IMAGE}
 USER root
 COPY --from=javascript /usr/local/bin/node /usr/local/bin/node
-RUN python -m ensurepip
+RUN python -m ensurepip --default-pip
 COPY requirements-notebooks.txt requirements-build.txt requirements-validation.txt /tmp/
-RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements-notebooks.txt -r /tmp/requirements-build.txt && \
+RUN python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements-notebooks.txt -r /tmp/requirements-build.txt && \
     python3 -m venv /opt/calrissian-venv && \
     /opt/calrissian-venv/bin/pip install --no-cache-dir --require-hashes -r /tmp/requirements-validation.txt
 COPY --chown=2000:2000 . /workspace/dask-app-package
-RUN pip install --no-deps --no-build-isolation /workspace/dask-app-package/cloudless-mosaic /workspace/dask-app-package/eopf-sentinel-2 && \
+RUN python -m pip install --no-deps --no-build-isolation /workspace/dask-app-package/cloudless-mosaic /workspace/dask-app-package/eopf-sentinel-2 && \
     python -m ipykernel install --name dask_env && \
     mkdir -p /home/neo/.config/dask && chown -R 2000:2000 /home/neo/.config /workspace
 USER neo
