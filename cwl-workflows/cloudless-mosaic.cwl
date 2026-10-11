@@ -139,6 +139,11 @@ outputs:
     type: Directory
     outputBinding:
       glob: .
+      loadListing: deep_listing
+      outputEval: "${\n  if (self.length !== 1 || !self[0].listing.some(function(entry)\
+        \ {\n    return entry.class === \"File\" && entry.basename === \"catalog.json\"\
+        ;\n  })) {\n    throw new Error(\"Processing did not produce a root catalog.json\"\
+        );\n  }\n  return self[0];\n}"
     label: stac-catalog
     doc: stac catalog.
 label: cloudless-mosaic
