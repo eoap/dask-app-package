@@ -7,6 +7,7 @@ from shutil import move
 import dask
 import pystac
 import xarray as xr
+import rioxarray  # Registers the rio accessor in clean clients and workers.
 import numpy as np
 from loguru import logger
 from dask_gateway import Gateway
