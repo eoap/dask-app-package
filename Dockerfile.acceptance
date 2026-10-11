@@ -1,5 +1,7 @@
 ARG WORKER_IMAGE
+FROM node:22.16.0-bookworm-slim@sha256:048ed02c5fd52e86fda6fbd2f6a76cf0d4492fd6c6fee9e2c463ed5108da0e34 AS javascript
 FROM ${WORKER_IMAGE}
+COPY --from=javascript /usr/local/bin/node /usr/local/bin/node
 COPY requirements-notebooks.txt requirements-build.txt /tmp/
 RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements-notebooks.txt -r /tmp/requirements-build.txt
 COPY requirements-validation.txt /tmp/
