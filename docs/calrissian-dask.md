@@ -50,70 +50,34 @@ $graph:
         doc: Cluster-wide memory upper limit.
 ```
 
-## Example Usage in CommandLineTool
+## Use the course packages
 
-```yaml
-cwlVersion: v1.2
-$namespaces:
-  s: https://schema.org/
-  calrissian: https://calrissian-cwl.github.io/schema#
-s:softwareVersion: 1.4.1
-schemas:
-  - http://schema.org/version/9.0/schemaorg-current-http.rdf
+The standalone tools in `cwl-workflows/` contain the complete metadata, typed
+inputs and required execution definitions. Generate their current reference
+with `python scripts/cwl-docs.py`; do not copy an obsolete workflow example.
+`clusterMaxCores` is plural. Worker core fields require integers in the pinned
+extension schema; the upstream implementation does not evaluate expressions
+in those fields. Notebook gateway options independently permit fractional CPU
+requests.
 
-class: CommandLineTool
-id: eopf-sentinel-2
-requirements:
-  DockerRequirement:
-    dockerPull: ttl.sh/eopf-sentinel-2:2h@sha256:...
-  EnvVarRequirement:
-    envDef: {}
-  calrissian:DaskGatewayRequirement:
-    workerCores: 1
-    workerCoresLimit: 1
-    workerMemory: "4G"
-    clusterMaxCore: 5
-    clusterMaxMemory: "20G"
-baseCommand: ["eopf-sentinel-2-proc"]
-arguments: []
-inputs:
-  item-url:
-    type: string
-    inputBinding:
-      position: 1
-      prefix: "--item-url"
-outputs:
-  stac-catalog:
-    type: Directory
-    outputBinding:
-      glob: .
-```
+Calrissian provisions an init container, a main processing container and a
+cluster-disposal sidecar. The pinned implementation repeats the main container's
+resource reservations for the sidecar. Acceptance requests a quarter core for
+each controller container, allows a one-core burst, uses a quarter-core gateway
+scheduler, and keeps two whole-core workers. Scientific controller RAM is 2 GiB;
+source packages retain the larger full-workload defaults.
 
-## Runtime Behavior
+A successful cleanup sidecar does not prove scientific processing succeeded.
+The scientific CWL output contract rejects a missing root `catalog.json`, and
+acceptance opens all raster assets and checks their georeferencing and values.
 
-When Calrissian encounters a `DaskGatewayRequirement`, the following workflow is triggered:
+Use upstream Calrissian from the PDE isolated environment, or the same immutable
+commit in `requirements-validation.txt`. `scripts/run-gateway-acceptance.sh`
+checks real distributed computation and disposal; `scripts/run-cwl-acceptance.py`
+executes the two typed scientific jobs. Both select the tested application image
+explicitly. The images include matching Python 3.12 scheduler/worker commands.
 
-- **Cluster Provisioning** - Calrissian connects to the Dask Gateway specified by the CLI flag `--dask-gateway-url` and provisions a Dask cluster matching the requested cores and memory.
-- **Tool Execution** - The CommandLineTool is launched with environment variables or context pointing to the Dask cluster (e.g., DASK_SCHEDULER_ADDRESS). This allows the tool to use Dask's distributed scheduler as needed.
-- **Cluster Teardown** - Once execution finishes, Calrissian shuts down the Dask cluster, ensuring efficient resource usage.
-
-## CLI Integration
-
-A new CLI option is introduced in Calrissian to support this functionality:
-
-```bash
---dask-gateway-url <URL>
-```
-
-**Description:**
-
-Specifies the base URL of the Dask Gateway (e.g., https://dask-gateway.example.com). This option is optional but required when using DaskGatewayRequirement.
-
-### Notes
-
-This extension assumes that the tool being run is compatible with Dask and can use a Dask cluster.
-
-The resource requests (workerCores, workerMemory, etc.) can also be dynamic via CWL expressions.
-
-Error handling for failed cluster creation or shutdown is included in Calrissian’s internal execution flow.
-
+The mandatory custom requirement remains under `requirements`, not optional
+`hints`. Generic cwl2oci parsing currently does not support this extension;
+actual transpiler-mate metadata validation runs in a separate locked environment.
+No packing command is used.
