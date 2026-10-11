@@ -46,6 +46,10 @@ spec:
     imagePullPolicy: Never
     command: [sleep, infinity]
     env:
+    - name: CALRISSIAN_POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
     - name: DASK_GATEWAY_ADDRESS
       value: http://traefik-dask-gateway:80
     - name: DASK_GATEWAY__ADDRESS
