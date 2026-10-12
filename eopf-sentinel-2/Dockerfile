@@ -24,6 +24,8 @@ RUN /usr/sbin/groupadd -g 2000 neo && \
     mkdir -p /app /work && chown -R 2000:2000 /app /work ${HOME}
 USER neo
 WORKDIR /app
+# Configurable gateway-compatible TLS ceiling; override to 1.3 when supported.
+ENV DASK_DISTRIBUTED__COMM__TLS__MAX_VERSION=1.2
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}:/usr/bin" \
     TF_NUM_INTRAOP_THREADS=1 TF_NUM_INTEROP_THREADS=1 CUDA_VISIBLE_DEVICES=-1

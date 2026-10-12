@@ -105,3 +105,8 @@ the verified wheels into `/app/venv` as UID/GID 2000 and remove pip.
 separately; it is not a production processing image. These changes require new
 scientific/cluster acceptance before replacing previously accepted candidate
 images. Build all processing Dockerfiles with the repository root as context.
+
+Processing images default to the configurable TLS 1.2 ceiling required by the
+validated gateway path. Override `DASK_DISTRIBUTED__COMM__TLS__MAX_VERSION=1.3`
+in the scheduler/worker environment when the target gateway supports it.
+Certificate validation and encrypted communication remain enabled.
