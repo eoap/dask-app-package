@@ -1,129 +1,121 @@
-name: build
+name: acceptance and publication
 on:
   push:
-    branches:
-    - main
-    - develop
-    - eopf
-
-    paths:
-    - Dockerfile
-    - codemeta.json
-    - .github/**
-    - cloudless-mosaic/**
-    - eopf-sentinel-2/**
-    - cwl-workflows/**
-
+    branches: [main, 'feature/**']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+permissions:
+  contents: read
 jobs:
-
-  version:
-
-    runs-on: ubuntu-latest
-
-    outputs:
-
-      app-version: ${{ steps.set-version.outputs.version }}
-
+  acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      packages: write
     steps:
-    - uses: actions/checkout@v2
-    - run: echo "APP_VERSION=$(cat cloudless-mosaic/codemeta.json | jq -r .version )" >> $GITHUB_ENV
-    - run: echo app version is $APP_VERSION
-    - id: set-version
-      run: echo "::set-output name=version::$APP_VERSION"
-
-  container-build:
-
-    needs: version
-
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        step: ["cloudless-mosaic", "eopf-sentinel-2"]
-
-    steps:
-    - uses: actions/checkout@v2   
-    - run: echo version ${{needs.version.outputs.app-version}}
-    - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-    - name: build & push image
-      run: |
-        IMAGE_ID=ghcr.io/eoap/dask-app-package/${{matrix.step}}
-        cd ${{matrix.step}}
-        docker build . --file Dockerfile --tag ${{matrix.step}}
-        docker tag ${{matrix.step}} $IMAGE_ID:${{needs.version.outputs.app-version}}
-        docker push $IMAGE_ID:${{needs.version.outputs.app-version}}
-
-  create-release:
-
-    needs:
-    - container-build
-    - version
-
-    runs-on: ubuntu-latest
-
-    outputs:
-
-      upload_url: ${{ steps.set-upload-url.outputs.upload_url }}
-
-    steps:
-    - name: release
-      uses: actions/create-release@v1
-      id: create_release
-      with:
-        draft: false
-        prerelease: false
-        release_name: ${{needs.version.outputs.app-version}}
-        tag_name: ${{needs.version.outputs.app-version}}
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-    - id: set-upload-url
-      run: echo "::set-output name=upload_url::${{ steps.create_release.outputs.upload_url }}"
-
-  publish-artifacts:
-
-    needs:
-    - create-release
-    - version
-
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        step: ["cloudless-mosaic", "eopf-sentinel-2"]
-
-    steps:
-    - uses: actions/checkout@v2
-    - run: |
-        set -x
-        tag="ghcr.io/eoap/dask-app-package/${{matrix.step}}:${{needs.version.outputs.app-version}}"
-        docker pull ${tag}
-        shatag=$( docker inspect ${tag} | yq -r '.[0]["RepoDigests"][0]' )
-        s="${{matrix.step}}" t="${shatag}" yq -i eval '(.$graph[] | select (.id == env(s)) ).requirements.DockerRequirement.dockerPull = env(t)' cwl-workflows/${{matrix.step}}.cwl
-    - run: |
-        set -x
-        r=$( cat ${{matrix.step}}/codemeta.json | jq -r ".codeRepository" ) yq -i eval '."s:codeRepository" = {"URL" : env(r)}' cwl-workflows/${{matrix.step}}.cwl
-        v="${{needs.version.outputs.app-version}}" yq -i eval '."s:softwareVersion" = env(v)' cwl-workflows/${{matrix.step}}.cwl
-        n=$(cat ${{matrix.step}}/codemeta.json | jq -r '(.author[0].givenName + " " + .author[0].familyName)') \
-        e=$(cat ${{matrix.step}}/codemeta.json | jq -r '.author[0].email') \
-        a=$(cat ${{matrix.step}}/codemeta.json | jq -r '.author[0].affiliation["name"]') \
-        yq eval -i  '."s:author" += [{"class": "s:Person", "s.name": env(n), "s.email": env(e), "s.affiliation": env(a)}]' cwl-workflows/${{matrix.step}}.cwl
-    - name: Cleanup downloads folder
-      run: rm -rf downloads/*
-    - run: |
-        set -x
-        mkdir downloads
-        cp cwl-workflows/${{matrix.step}}.cwl downloads/${{matrix.step}}.${{needs.version.outputs.app-version}}.cwl
-    - uses: actions/upload-artifact@v4
-      with:
-        name: application-package-${{matrix.step}}
-        path: downloads
-        overwrite: true
-    - name: upload linux artifact 1
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        upload_url: ${{needs.create-release.outputs.upload_url}}
-        asset_path: downloads/${{matrix.step}}.${{needs.version.outputs.app-version}}.cwl
-        asset_name: ${{matrix.step}}.${{needs.version.outputs.app-version}}.cwl
-        asset_content_type: text/yaml
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v6
+      - name: Locked contracts, regression tests and docs
+        run: |
+          uv venv .venv
+          uv pip sync --python .venv/bin/python --require-hashes requirements/development.txt
+          uv pip install --python .venv/bin/python --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2
+          .venv/bin/ruff format --check cloudless-mosaic/src eopf-sentinel-2/src scripts tests
+          .venv/bin/ruff check cloudless-mosaic/src eopf-sentinel-2/src scripts tests
+          .venv/bin/mypy cloudless-mosaic/src eopf-sentinel-2/src scripts
+          .venv/bin/bandit -r cloudless-mosaic/src eopf-sentinel-2/src scripts -ll
+          .venv/bin/python -m pytest -q tests
+          .venv/bin/mkdocs build --strict
+          uv venv .validation-venv
+          uv pip sync --python .validation-venv/bin/python --require-hashes requirements-validation.txt
+          .validation-venv/bin/python scripts/cwl-docs.py --validate
+          uv venv .metadata-venv
+          uv pip sync --python .metadata-venv/bin/python --require-hashes requirements-metadata.txt
+          .metadata-venv/bin/python scripts/check-metadata.py
+      - name: Build matching worker, applications and controller
+        run: |
+          docker build -t dask-worker:local .
+          .venv/bin/python scripts/select-images.py --cloudless dask-worker:local --eopf dask-worker:local
+          docker build -f Dockerfile.acceptance --build-arg WORKER_IMAGE=dask-worker:local -t dask-acceptance:local .
+      - name: Start pinned Kubernetes and gateway
+        run: |
+          curl -fsSL https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64 -o /tmp/kind
+          sudo install /tmp/kind /usr/local/bin/kind
+          kind create cluster --name dask-acceptance --image kindest/node:v1.33.1@sha256:050072256b9a903bd914c0b2866828150cb229cea0efe5892e2b644d5dd3b34f --wait 120s
+          kind load docker-image dask-worker:local dask-acceptance:local --name dask-acceptance
+          helm upgrade --install dask-gateway https://helm.dask.org/dask-gateway-2025.4.0.tgz --create-namespace --namespace dask-acceptance -f acceptance/gateway-values.yaml --set gateway.backend.image.name=dask-worker --set gateway.backend.image.tag=local --set traefik.service.type=ClusterIP --wait --timeout 10m
+          kubectl apply -n dask-acceptance -f acceptance/controller.yaml
+          kubectl wait -n dask-acceptance --for=condition=Ready pod/acceptance-controller --timeout=10m
+      - name: Calrissian distributed tasks and teardown
+        run: timeout 480 kubectl exec -n dask-acceptance acceptance-controller -- bash scripts/run-gateway-acceptance.sh
+      - name: Real cloudless and EOPF notebook acceptance
+        run: |
+          kubectl exec -n dask-acceptance acceptance-controller -- python scripts/run-practice-labs.py --workspace /workspace/dask-app-package --notebooks-dir . --lab cloudless-mosaic/notebook.ipynb --python-kernel dask_env --output /calrissian/notebooks
+          kubectl exec -n dask-acceptance acceptance-controller -- python scripts/run-practice-labs.py --workspace /workspace/dask-app-package --notebooks-dir . --lab eopf-sentinel-2/notebook.ipynb --python-kernel dask_env --output /calrissian/notebooks
+          kubectl exec -n dask-acceptance acceptance-controller -- python scripts/check-results.py
+          kubectl exec -n dask-acceptance acceptance-controller -- python -c 'from dask_gateway import Gateway; assert not Gateway().list_clusters(), "Clusters leaked after notebooks"'
+      - name: Typed CWL scientific execution
+        run: timeout 1200 kubectl exec -n dask-acceptance acceptance-controller -- python scripts/run-cwl-acceptance.py
+      - name: Publish accepted candidate or stable artifacts
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH_STABLE: ${{ github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main' }}
+        run: |
+          set -euo pipefail
+          version=$(python -c 'import json; print(json.load(open("cloudless-mosaic/codemeta.json"))["version"])')
+          tag="$version-rc.$GITHUB_RUN_NUMBER"
+          if [ "$PUBLISH_STABLE" = true ]; then
+            tag=$version
+            if gh release view "$version" >/dev/null 2>&1; then echo 'Release already exists' >&2; exit 1; fi
+          fi
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          for app in cloudless-mosaic eopf-sentinel-2; do
+            image="ghcr.io/eoap/dask-app-package/$app:$tag"
+            if docker manifest inspect "$image" >/dev/null 2>&1; then echo 'Image tag already exists' >&2; exit 1; fi
+          done
+          mkdir downloads
+          for app in cloudless-mosaic eopf-sentinel-2; do
+            image="ghcr.io/eoap/dask-app-package/$app:$tag"
+            docker tag dask-worker:local "$image"
+            docker push "$image"
+            docker pull "$image"
+            digest=$(docker buildx imagetools inspect "$image" --format '{{.Manifest.Digest}}')
+            printf '%s@%s\n' "ghcr.io/eoap/dask-app-package/$app" "$digest" > "downloads/$app.image.txt"
+          done
+          .venv/bin/python scripts/select-images.py --cloudless "$(cat downloads/cloudless-mosaic.image.txt)" --eopf "$(cat downloads/eopf-sentinel-2.image.txt)"
+          .validation-venv/bin/python scripts/cwl-docs.py --validate
+          cp cwl-workflows/*.cwl downloads/
+          cp requirements-*.txt downloads/
+          (cd downloads && sha256sum * > SHA256SUMS)
+          tar czf "dask-app-package.$tag.tar.gz" -C downloads .
+          if [ "$PUBLISH_STABLE" = true ]; then
+            gh release create "$version" "dask-app-package.$tag.tar.gz" downloads/* --target "$GITHUB_SHA" --title "$version" --notes 'Standalone typed CWL v1.2, locked Python 3.12 applications and matching Dask Gateway workers, accepted with real cloudless Sentinel-2 and EOPF processing on Kubernetes.'
+          fi
+      - name: Preserve acceptance evidence
+        if: always()
+        run: |
+          mkdir -p evidence
+          kubectl get nodes -o yaml > evidence/nodes.yaml 2>&1 || true
+          kubectl get events -n dask-acceptance --sort-by=.lastTimestamp > evidence/events.txt 2>&1 || true
+          kubectl describe pods -n dask-acceptance > evidence/pod-details.txt 2>&1 || true
+          kubectl get pods -n dask-acceptance -o wide > evidence/pods.txt 2>&1 || true
+          kubectl get daskclusters -n dask-acceptance -o yaml > evidence/clusters.yaml 2>&1 || true
+          kubectl cp -n dask-acceptance acceptance-controller:/calrissian evidence/calrissian || true
+          cp -r downloads evidence/ 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: acceptance-and-candidate-artifacts
+          path: evidence

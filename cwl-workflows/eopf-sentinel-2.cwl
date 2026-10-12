@@ -1,55 +1,104 @@
+class: CommandLineTool
+id: main
+requirements:
+  DockerRequirement:
+    dockerPull: ghcr.io/eoap/dask-app-package/eopf-sentinel-2:2.0.0
+  EnvVarRequirement:
+    envDef: {}
+  calrissian:DaskGatewayRequirement:
+    workerCores: 1
+    workerCoresLimit: 1
+    workerMemory: 4G
+    clusterMaxCores: 10
+    clusterMaxMemory: 40G
+  SchemaDefRequirement:
+    types:
+    - name: '#CRS'
+      type: enum
+      symbols:
+      - '4326'
+    - $import: https://raw.githubusercontent.com/eoap/schemas/main/string_format.yaml
+    - name: '#BBox'
+      type: record
+      fields:
+      - name: bbox
+        type:
+          type: array
+          items: double
+      - name: crs
+        type: '#CRS'
+    - name: '#SpectralBand'
+      type: enum
+      symbols:
+      - red
+      - green
+      - blue
+      - nir
+      - swir16
+      - swir22
+  InlineJavascriptRequirement: {}
+  NetworkAccess:
+    networkAccess: true
+  ResourceRequirement:
+    ramMin: 4096
+    coresMin: 1
+baseCommand:
+- eopf-sentinel-2-proc
+arguments: []
+inputs:
+  item-url:
+    type: https://raw.githubusercontent.com/eoap/schemas/main/string_format.yaml#URI
+    inputBinding:
+      position: 1
+      prefix: --item-url
+      valueFrom: $(self.value)
+    label: item-url
+    doc: item url.
+  window-size:
+    type:
+    - 'null'
+    - int
+    default: null
+    label: Real-product window
+    doc: Optional centred window in pixels; omitted to process the full acquisition.
+    inputBinding:
+      prefix: --window-size
+outputs:
+  stac-catalog:
+    type: Directory
+    outputBinding:
+      glob: .
+      loadListing: deep_listing
+      outputEval: "${\n  if (self.length !== 1 || !self[0].listing.some(function(entry)\
+        \ {\n    return entry.class === \"File\" && entry.basename === \"catalog.json\"\
+        ;\n  })) {\n    throw new Error(\"Processing did not produce a root catalog.json\"\
+        );\n  }\n  return self[0];\n}"
+    label: stac-catalog
+    doc: stac catalog.
+label: eopf-sentinel-2
+doc: Dask application package eopf-sentinel-2
 cwlVersion: v1.2
 $namespaces:
   s: https://schema.org/
   calrissian: https://calrissian-cwl.github.io/schema#
-s:softwareVersion: 1.4.1
-schemas:
-  - http://schema.org/version/9.0/schemaorg-current-http.rdf
-$graph:
-  - class: Workflow
-    id: main
-    requirements:
-      InlineJavascriptRequirement: {}
-      NetworkAccess:
-        networkAccess: true
-      ScatterFeatureRequirement: {}
-    inputs:
-      item-url:
-        type: string
-    outputs:
-      stac-catalog:
-        outputSource: eopf-sentinel-2/stac-catalog
-        type: Directory
-    steps:
-      eopf-sentinel-2:
-        in:
-          item-url: item-url
-        out:
-          - stac-catalog
-        run: "#eopf-sentinel-2"
-  - class: CommandLineTool
-    id: eopf-sentinel-2
-    requirements:
-      DockerRequirement:
-        dockerPull: ghcr.io/eoap/dask-app-package/eopf-sentinel-2:1.1.0
-      EnvVarRequirement:
-        envDef: {}
-      calrissian:DaskGatewayRequirement:
-        workerCores: 1
-        workerCoresLimit: 1
-        workerMemory: "4G"
-        clusterMaxCore: 10
-        clusterMaxMemory: "40G"
-    baseCommand: ["eopf-sentinel-2-proc"]
-    arguments: []
-    inputs:
-      item-url:
-        type: string
-        inputBinding:
-          position: 1
-          prefix: "--item-url"
-    outputs:
-      stac-catalog:
-        type: Directory
-        outputBinding:
-          glob: .
+s:softwareVersion: 2.0.0
+s:codeRepository: https://github.com/eoap/dask-app-package
+s:license: https://spdx.org/licenses/MIT.html
+s:author:
+- '@type': s:Person
+  s:name: Leonardo Mizzoni
+  s:givenName: Leonardo
+  s:familyName: Mizzoni
+  s:email: leonardo.mizzoni@terradue.com
+  s:affiliation: &id001
+    '@type': s:Organization
+    s:name: Terradue
+    s:url: https://www.terradue.com
+s:name: eopf-sentinel-2
+s:description: Dask application package eopf-sentinel-2
+s:dateCreated: '2025-01-01'
+s:softwareHelp:
+  '@type': s:CreativeWork
+  s:name: Dask application package training
+  s:url: https://eoap.github.io/dask-app-package/
+s:publisher: *id001

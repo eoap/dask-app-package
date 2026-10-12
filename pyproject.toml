@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eoap-dask-app-package"
+version = "2.0.0"
+description = "Dask Gateway processing of real Sentinel-2 imagery"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "MIT"
+dependencies = ["numpy==1.26.3", "dask==2025.4.0", "distributed==2025.4.0", "dask-gateway==2025.4.0", "pystac", "bokeh==3.7.3", "rioxarray==0.18.1", "loguru==0.7.3", "odc-stac[botocore]==0.3.10", "stackstac==0.5.1", "pystac-client", "planetary-computer", "xarray-spatial", "shapely", "rio-stac", "pyarrow", "rio-color", "click", "xarray[complete]"]
+
+[project.scripts]
+cloudless-mosaic = "cloudless_mosaic.app:start"
+eopf-sentinel-2-proc = "eopf_sentinel_2.app:start"
+
+[project.urls]
+Documentation = "https://eoap.github.io/dask-app-package/"
+Source = "https://github.com/eoap/dask-app-package"
+Issues = "https://github.com/eoap/dask-app-package/issues"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["cloudless-mosaic/src/cloudless_mosaic", "eopf-sentinel-2/src/eopf_sentinel_2"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/cloudless-mosaic", "/eopf-sentinel-2", "/scripts", "/tests", "/requirements", "/requirements-runtime.txt", "/README.md", "/LICENSE", "/pyproject.toml", "/Dockerfile", "/typing"]
+
+# The hash-locked environment supplies both the tools and application dependencies.
+[tool.hatch.envs.dev]
+skip-install = true
+installer = "uv"
+post-install-commands = ["uv pip install --require-hashes -r requirements/development.txt", "uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2"]
+template = "dev"
+python = "3.12"
+
+[tool.hatch.envs.dev.scripts]
+check = ["bootstrap", "format-check", "lint-check", "typecheck", "security"]
+format-check = "ruff format --check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
+lint-check = "ruff check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
+typecheck = "mypy cloudless-mosaic/src eopf-sentinel-2/src scripts"
+security = "bandit -r cloudless-mosaic/src eopf-sentinel-2/src scripts -ll"
+bootstrap = ["uv pip install --require-hashes -r requirements/development.txt", "uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2"]
+
+[tool.hatch.envs.test]
+template = "dev"
+
+[tool.hatch.envs.test.scripts]
+test = ["bootstrap", "pytest -q {args}"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "C4", "SIM", "C90"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.mypy]
+ignore_missing_imports = true
+strict = true
+mypy_path = "typing"

@@ -4,17 +4,21 @@ This module provides a command-line interface for executing the Sentinel-2 proce
 
 ## Installation
 
-To enable the command-line entry point and install the necessary dependencies, navigate to the module's root directory and run the following commands:
+The PDE editor installs both course applications at startup. For a separate
+Python 3.12 environment, run these commands from the repository root:
+
 ```bash
-cd eopf-sentinel-2/
-pip install -e .
+uv venv --python 3.12
+uv pip sync --require-hashes requirements-notebooks.txt requirements-build.txt
+uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2
 ```
 
-The `pip install -e .` command installs the package in "editable" mode, meaning any changes to the source code will be immediately reflected without needing to reinstall.
+Editable installation reflects source changes locally; rebuild workers from the
+same source when changing processing code.
 
 ## Environment Variables
 
-Before running the CLI, ensure that the `DASK_CLUSTER` environment variable is set to point to your Dask cluster's address. This is crucial for the application to connect to the distributed processing environment.
+Before running the CLI, ensure that the `DASK_CLUSTER` environment variable is set to contain an existing gateway cluster name (not the gateway URL). This is crucial for the application to connect to the distributed processing environment.
 
 ## Basic Usage and Help
 
@@ -29,6 +33,7 @@ Usage: eopf-sentinel-2-proc [OPTIONS]
 
 Options:
   --item-url TEXT  STAC Item URL  [required]
+  --window-size INTEGER RANGE  Optional centred processing window in pixels.
   --help           Show this message and exit.
 ```
 ## Running the Processing Command
@@ -42,3 +47,8 @@ eopf-sentinel-2-proc --item-url "https://stac.core.eopf.eodc.eu/collections/sent
 Explanation of the item-url parameter:
 
 * `--item-url TEXT`: This is a required option. It expects a `TEXT` value which must be a valid URL pointing to a Sentinel-2 STAC Item. This STAC Item provides all the necessary metadata and asset links (expected in Zarr format) for the module to locate and process the Sentinel-2 data.
+
+Use `--window-size 1024` for bounded acceptance on the original real acquisition.
+Omit this option to process the full tile. The result records the window and
+derives its STAC footprint from the output raster; full-tile capacity has not
+been accepted.

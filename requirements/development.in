@@ -1,0 +1,8 @@
+-r ../requirements-notebooks.txt
+-r ../requirements-build.txt
+hatch==1.18.1
+uv
+pytest
+ruff
+mypy
+bandit

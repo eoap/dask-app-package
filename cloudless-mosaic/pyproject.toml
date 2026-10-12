@@ -1,12 +1,12 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27,<2"]
 build-backend = "hatchling.build"
 
 [project]
 name = "cloudless-mosaic"
 dynamic = ["version"]
 description = 'Calrissian-Dask demo app-package'
-requires-python = ">=3.8"
+requires-python = ">=3.12,<3.13"
 license = "MIT"
 keywords = ["Dask", "Calrissian"]
 
@@ -46,7 +46,12 @@ dependencies = [
   "rio-stac",
   "pyarrow",
 ]
+readme = "README.md"
 
+[project.urls]
+Documentation = "https://eoap.github.io/dask-app-package/"
+Source = "https://github.com/eoap/dask-app-package"
+Issues = "https://github.com/eoap/dask-app-package/issues"
 [tool.hatch.metadata]
 allow-direct-references = true
 
@@ -55,14 +60,53 @@ path = "src/cloudless_mosaic/__about__.py"
 
 source_pkgs = ["src/cloudless_mosaic"]
 
+[tool.hatch.build]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cloudless_mosaic"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/README.md", "/pyproject.toml"]
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "C4", "SIM", "C90"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.mypy]
+ignore_missing_imports = true
+strict = true
+mypy_path = "../typing"
+
 [project.scripts]
 cloudless-mosaic = "cloudless_mosaic.app:start"
 
 [tool.hatch.envs.dev]
-python = "3.10"
+skip-install = true
+installer = "uv"
+post-install-commands = ["cd .. && uv pip install --require-hashes -r requirements/development.txt", "cd .. && uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2"]
+template = "dev"
+python = "3.12"
+
+[tool.hatch.envs.dev.scripts]
+check = ["bootstrap", "format-check", "lint-check", "typecheck", "security"]
+format-check = "cd .. && ruff format --check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
+lint-check = "cd .. && ruff check cloudless-mosaic/src eopf-sentinel-2/src scripts tests"
+typecheck = "cd .. && mypy cloudless-mosaic/src eopf-sentinel-2/src scripts"
+security = "cd .. && bandit -r cloudless-mosaic/src eopf-sentinel-2/src scripts -ll"
+bootstrap = ["cd .. && uv pip install --require-hashes -r requirements/development.txt", "cd .. && uv pip install --no-deps --no-build-isolation -e cloudless-mosaic -e eopf-sentinel-2"]
 
 [tool.hatch.envs.prod]
-python = "3.10"
+python = "3.12"
 path = "/app/envs/cloudless-mosaic"
 
 
+[tool.hatch.envs.test]
+template = "dev"
+
+[tool.hatch.envs.test.scripts]
+test = ["bootstrap", "cd .. && pytest -q {args}"]

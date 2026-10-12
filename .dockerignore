@@ -1,0 +1,13 @@
+.git
+.venv
+.validation-venv
+.metadata-venv
+.oci-venv
+**/__pycache__
+**/*.pyc
+**/*.tif
+**/*.aux.xml
+**/catalog.json
+site
+evidence
+downloads

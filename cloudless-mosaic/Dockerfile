@@ -1,60 +1,40 @@
-# Stage 1: Build stage
-FROM rockylinux:9.3-minimal AS build
-
-# Install necessary build tools
-RUN microdnf install -y curl tar && \
+FROM docker.io/rockylinux/rockylinux:10.1-minimal@sha256:cfa2812ec7151c2be393cfe46e50cf59426373d12f03f4ffbdd56becb8195a65 AS builder
+RUN microdnf -y update && \
+    microdnf -y install curl tar git python3 python3-pip python3-setuptools python3-devel gcc gcc-c++ make sqlite-devel zlib-devel glibc-devel libstdc++-devel && \
     microdnf clean all
+RUN test "$(uname -m)" = x86_64 && \
+    curl -fsSL https://github.com/pypa/hatch/releases/download/hatch-v1.14.0/hatch-x86_64-unknown-linux-gnu.tar.gz -o /tmp/hatch.tar.gz && \
+    echo "33af9b6f72cf11db6bc96070901cb9d32adbe316534bbf41d345cdd0d84b3459  /tmp/hatch.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/hatch.tar.gz -C /tmp && \
+    install -m 0755 /tmp/hatch /usr/local/bin/hatch && \
+    rm -rf /tmp/hatch*
+WORKDIR /src
+COPY . /src
+RUN cd . && hatch build -t wheel
+RUN python3 -m pip wheel --no-cache-dir --require-hashes -r requirements-runtime.txt --wheel-dir /wheelhouse
+RUN python3 -c 'from pathlib import Path; import hashlib; root=Path("/wheelhouse"); (root/"requirements.txt").write_text("".join("/app/dependencies/"+p.name+" --hash=sha256:"+hashlib.sha256(p.read_bytes()).hexdigest()+"\n" for p in sorted(root.glob("*.whl"))))'
 
-# Download the hatch tar.gz file from GitHub
-RUN curl -L https://github.com/pypa/hatch/releases/latest/download/hatch-x86_64-unknown-linux-gnu.tar.gz -o /tmp/hatch-x86_64-unknown-linux-gnu.tar.gz
-
-# Extract the hatch binary
-RUN tar -xzf /tmp/hatch-x86_64-unknown-linux-gnu.tar.gz -C /tmp/
-
-# Stage 2: Final stage
-FROM rockylinux:9.3-minimal
-
-# Install runtime dependencies
-RUN microdnf update -y && \
-    microdnf install -y --nodocs which expat && \
+FROM docker.io/rockylinux/rockylinux:10.1-minimal@sha256:cfa2812ec7151c2be393cfe46e50cf59426373d12f03f4ffbdd56becb8195a65 AS runtime
+RUN microdnf -y update && \
+    microdnf -y install python3 python3-pip git jq libstdc++ sqlite-libs zlib libgomp expat && \
     microdnf clean all
-
-
-# Set up a default user and home directory
 ENV HOME=/home/neo
-
-# Create a user with UID 1001, group root, and a home directory
-RUN useradd -u 1001 -r -g 100 -m -d ${HOME} -s /sbin/nologin \
-        -c "Default neo User" neo && \
-    mkdir -p /app && \
-    mkdir -p /prod && \
-    mkdir -p /home/neo/.cache/pyapp/locks && \
-    chown -R 1001:100 /home/neo/.cache && \
-    chown -R 1001:100 /app && \
-    chmod g+rwx ${HOME} /app
-
-# Copy the hatch binary from the build stage
-COPY --from=build /tmp/hatch /usr/bin/hatch
-
-# Ensure the hatch binary is executable
-RUN chmod +x /usr/bin/hatch
-
-# Switch to the non-root user
+RUN /usr/sbin/groupadd -g 2000 neo && \
+    /usr/sbin/useradd -u 2000 -g 2000 -m -d ${HOME} -s /sbin/nologin neo && \
+    mkdir -p /app /work && chown -R 2000:2000 /app /work ${HOME}
 USER neo
-
-# Copy the application files into the /app directory
-COPY --chown=1001:100 . /app
-
 WORKDIR /app
-
-# Set up virtual environment paths
-ENV VIRTUAL_ENV=/app/envs/cloudless-mosaic 
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-# Prune any existing environments and create a new production environment
-RUN hatch env prune && \
-    hatch env create prod && \
-    rm -fr /app/.git /app/.pytest_cache && \
-    cloudless-mosaic --help
-
-
+# Configurable gateway-compatible TLS ceiling; override to 1.3 when supported.
+ENV DASK_DISTRIBUTED__COMM__TLS__MAX_VERSION=1.2
+ENV VIRTUAL_ENV=/app/venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}:/usr/bin" \
+    TF_NUM_INTRAOP_THREADS=1 TF_NUM_INTEROP_THREADS=1 CUDA_VISIBLE_DEVICES=-1
+RUN python3 -c 'import sys; assert sys.version_info[:2] == (3, 12)' && python3 -m venv /app/venv
+COPY --from=builder --chown=2000:2000 /wheelhouse /app/dependencies
+RUN pip install --no-cache-dir --no-index --no-deps --require-hashes -r /app/dependencies/requirements.txt
+COPY --from=builder --chown=2000:2000 /src/./dist/*.whl /app/dist/
+RUN pip install --no-cache-dir --no-deps /app/dist/*.whl && \
+    pip check && python -m pip uninstall --yes pip && cloudless-mosaic --help && eopf-sentinel-2-proc --help && dask-scheduler --version && dask-worker --version && \
+    rm -rf /app/dependencies /app/dist
+ENTRYPOINT []
+CMD ["cloudless-mosaic", "--help"]
