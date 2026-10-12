@@ -1,0 +1,12 @@
+{
+  "source_commit": "fc5d96f",
+  "tls_default": "configurable maximum 1.2",
+  "tls_1_3_override_verified": true,
+  "processing_images_built": 3,
+  "runtime_config_checks_passed": 6,
+  "quality_checks_passed": true,
+  "unit_tests_passed": 8,
+  "gateway_task_execution_passed": false,
+  "fresh_gateway_retry": "scheduler connection lost with one/two workers; also reproduced using previous diagnostic image",
+  "published_candidate_acceptance_passed": false
+}
