@@ -59,10 +59,10 @@ source_pkgs = ["src/cloudless_mosaic"]
 cloudless-mosaic = "cloudless_mosaic.app:start"
 
 [tool.hatch.envs.dev]
-python = "3.10"
+python = "3.12"
 
 [tool.hatch.envs.prod]
-python = "3.10"
+python = "3.12"
 path = "/app/envs/cloudless-mosaic"
 
 
